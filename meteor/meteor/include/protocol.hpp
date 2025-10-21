@@ -1,0 +1,62 @@
+// protocol.hpp
+
+#pragma once
+
+#include "network.hpp"
+
+namespace meteor
+{
+
+   constexpr uint32 PROTOCOL_MAGIC = 0xbaadf00d;
+   constexpr uint32 PROTOCOL_VERSION = 0x00010000;
+
+   enum class protocol_packet_type : uint8 {
+      CONNECT,
+      DISCONNECT,
+      PAYLOAD,
+   };
+
+   enum class disconnect_reason_type : uint8 {
+       CUSTOM,
+       WRONG_VERSION,
+       WRONG_MAGIC
+   };
+
+   struct connect_packet {
+       connect_packet() = default;
+       connect_packet(uint32 magic, uint32 version);
+
+       bool write(byte_stream_writer& writer);
+       bool read(byte_stream_reader& reader);
+
+       uint8  m_type = 0;
+       uint32 m_magic = 0;
+       uint32 m_version = 0;
+       
+   };
+
+   struct disconnect_packet {
+       disconnect_packet() = default;
+       disconnect_packet(uint32 sequence, uint8 reason, char message);
+
+       bool write(byte_stream_writer& writer);
+       bool read(byte_stream_reader& reader);
+
+       uint8  m_type = 0;
+       uint8  m_reason = 0;
+       uint32 m_sequence = 0;
+       char   m_message[256] = {};
+   };
+
+   struct payload_packet {
+       payload_packet() = default;
+       payload_packet(uint32 sequence, uint32 acknowledge);
+
+       bool write(byte_stream_writer& writer);
+       bool read(byte_stream_reader& reader);
+
+       uint8  m_type = 0;
+       uint32 m_sequence = 0;
+       uint32 m_acknowledge = 0;
+   };
+} // !meteor
