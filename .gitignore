@@ -34,3 +34,9 @@ meteor/vendor/raylib/include/raylib.h
 meteor/vendor/raylib/include/raymath.h
 meteor/vendor/raylib/include/rlgl.h
 meteor/vendor/raylib/lib/raylib.lib
+meteor/.vs/meteor/FileContentIndex/5f403016-806d-4792-89d5-27a44be11e3c.vsidx
+meteor/.vs/meteor/FileContentIndex/69ca4f3b-c39a-46ee-89a4-79470b56cf6b.vsidx
+meteor/.vs/meteor/FileContentIndex/afc4c282-f9ab-40f6-be6c-a07de93fc72c.vsidx
+meteor/.vs/meteor/v17/ipch/AutoPCH/245d73e16d2551f5/SERVER.ipch
+meteor/.vs/meteor/v17/ipch/AutoPCH/431d1456e61dae5f/GAME.ipch
+meteor/.vs/meteor/v17/ipch/AutoPCH/eb50656a32f22e6a/ENTITIES.ipch
