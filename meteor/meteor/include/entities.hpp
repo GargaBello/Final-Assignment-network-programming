@@ -33,10 +33,13 @@ namespace meteor {
 
 	struct terrain : entity {
 
+		int RECTANGLE_WIDTH = 10, RECTANGLE_HEIGHT = 10;
+
 		void set_size(Rectangle rec);
 		void set_hit(bool hit);
 
 		bool m_hit = false;
-		Rectangle m_size_rec = { 0,0,0,0 }
+		Vector2 m_origin = {0,0};
+		Rectangle m_size_rec = { 0,0,0,0 };
 	};
 }

@@ -27,7 +27,7 @@ namespace meteor {
 	}
 
 	void terrain::set_size(Rectangle rec) {
-
+		m_size_rec = rec;
 	}
 
 	void terrain::set_hit(bool hit) {

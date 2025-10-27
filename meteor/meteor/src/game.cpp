@@ -17,7 +17,7 @@ namespace meteor {
 				vector.push_back(ter);
 			}
 			
-			game.all_terrain.push_back(vector);
+			game.m_terrain.push_back(vector);
 		}
 	}
 
