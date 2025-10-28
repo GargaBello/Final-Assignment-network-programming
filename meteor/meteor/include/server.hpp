@@ -4,6 +4,7 @@
 
 #include "connection.hpp"
 #include "protocol.hpp"
+#include "game.hpp"
 
 namespace meteor {
 	struct server {
@@ -168,8 +169,13 @@ namespace meteor {
 		{
 		}
 
+		void init() {
+			m_game.init();
+		}
+
 		void update() {
 			m_server.update();
+			m_game.update();
 		}
 
 		void on_connect(uint32 id) {
@@ -189,5 +195,6 @@ namespace meteor {
 		}
 
 		server m_server;
+		game   m_game;
 	};
 }
