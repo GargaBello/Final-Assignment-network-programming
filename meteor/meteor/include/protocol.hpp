@@ -37,7 +37,7 @@ namespace meteor
 
    struct disconnect_packet {
        disconnect_packet() = default;
-       disconnect_packet(uint32 sequence, uint8 reason, char message);
+       disconnect_packet(uint32 sequence, uint8 reason);
 
        bool write(byte_stream_writer& writer);
        bool read(byte_stream_reader& reader);
@@ -45,7 +45,7 @@ namespace meteor
        uint8  m_type = 0;
        uint8  m_reason = 0;
        uint32 m_sequence = 0;
-       char   m_message[256] = {};
+       //char   m_message[256] = {};
    };
 
    struct payload_packet {

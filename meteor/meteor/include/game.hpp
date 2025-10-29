@@ -13,13 +13,13 @@ namespace meteor {
 
 		void set_map_size(Rectangle rec);
 		void create_terrain() {
-			for (int x = MAP_X_POSITION += SPAWN_AREA_OFFSET; x < MAP_WIDTH; x++) {
+			for (int x = MAP_X_POSITION += SPAWN_AREA_OFFSET; x < MAP_WIDTH; x += 10) {
 				std::vector<terrain> vector = std::vector<terrain>();
 
-				for (int y = MAP_Y_POSITION += SPAWN_AREA_OFFSET; y < MAP_HEIGHT; y++) {
+				for (int y = MAP_Y_POSITION += SPAWN_AREA_OFFSET; y < MAP_HEIGHT; y += 10) {
 					terrain ter;
-					ter.m_origin.x = x;
-					ter.m_origin.y = y;
+					ter.m_origin.x = (float)x;
+					ter.m_origin.y = (float)y;
 					vector.push_back(ter);
 				}
 
@@ -32,16 +32,18 @@ namespace meteor {
 		}
 
 		void update() {
-			m_tick += 1;
+			while (!WindowShouldClose()) {
+				m_tick += 1;
 
 
-			draw();
+				draw();
+			}
 		}
 
 		void draw() {
 			for (int i = 0; i < m_terrain.size(); i++) {
 				for (int j = 0; j < m_terrain[i].size(); j++) {
-					Rectangle rec = { m_terrain[i][j].m_origin.x, m_terrain[i][j].m_origin.y, m_terrain[i][j].RECTANGLE_WIDTH, m_terrain[i][j].RECTANGLE_HEIGHT };
+					Rectangle rec = { m_terrain[i][j].m_origin.x, m_terrain[i][j].m_origin.y, (float)m_terrain[i][j].RECTANGLE_WIDTH, (float)m_terrain[i][j].RECTANGLE_HEIGHT };
 					m_terrain[i][j].set_size(rec);
 					DrawRectanglePro(m_terrain[i][j].m_size_rec, m_terrain[i][j].m_origin, 0, GRAY);
 				}

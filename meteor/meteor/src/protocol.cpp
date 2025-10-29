@@ -28,11 +28,10 @@ namespace meteor
 		return serialize(*this, reader);
 	}
 
-	disconnect_packet::disconnect_packet(uint32 sequence, uint8 reason, char message) 
+	disconnect_packet::disconnect_packet(uint32 sequence, uint8 reason) 
 		: m_type((uint8) protocol_packet_type::DISCONNECT)
 		, m_sequence(sequence)
 		, m_reason(reason)
-		, m_message(message)
 	{
 	}
 
@@ -42,7 +41,7 @@ namespace meteor
 		success &= stream.serialize(packet.m_type);
 		success &= stream.serialize(packet.m_sequence);
 		success &= stream.serialize(packet.m_reason);
-		success &= stream - serialize(packet.m_message);
+		//success &= stream.serialize(packet.m_message);
 		return success;
 	}
 
@@ -60,5 +59,23 @@ namespace meteor
 		, m_acknowledge(acknowledge)
 	{
 	}
+
+	template <typename T>
+	bool serialize(payload_packet& packet, T& stream) {
+		bool success = true;
+		success &= stream.serialize(packet.m_type);
+		success &= stream.serialize(packet.m_sequence);
+		success &= stream.serialize(packet.m_acknowledge);
+		return success;
+	}
+
+	bool payload_packet::read(byte_stream_reader& reader) {
+		return serialize(*this, reader);
+	}
+
+	bool payload_packet::write(byte_stream_writer& writer) {
+		return serialize(*this, writer);
+	}
+
 
 } // !meteor

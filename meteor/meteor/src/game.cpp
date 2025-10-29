@@ -28,9 +28,7 @@ namespace meteor {
 	}
 
 	void update() {
-		while (!WindowShouldClose()) {
-			draw();
-		}
+		
 	}
 
 	void draw() {

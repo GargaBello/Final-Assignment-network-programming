@@ -25,7 +25,7 @@ int main(int argc, char **argv)
    bool running = true;
    while (running) {
 
-      //app->update();
+      //std::vector<Client> &clientsapp->update();
       // note: save the forest!
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
    }
