@@ -10,6 +10,7 @@ namespace meteor {
 	struct game {
 		game() = default;
 		int MAP_WIDTH = 900, MAP_HEIGHT = 900, MAP_X_POSITION = 20, MAP_Y_POSITION = 20, SPAWN_AREA_OFFSET = 8;
+		int MAX_PLAYERS = 4;
 
 		void set_map_size(Rectangle rec);
 		void create_terrain() {
@@ -56,5 +57,6 @@ namespace meteor {
 
 		std::vector<entity> m_entities;
 		std::vector<std::vector<terrain>> m_terrain;
+		
 	};
 }
