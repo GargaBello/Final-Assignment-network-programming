@@ -5,6 +5,10 @@
 #include "connection.hpp"
 #include "protocol.hpp"
 #include "game.hpp"
+#include "client_controller.hpp"
+#include "helper_functions.hpp"
+#include "network.hpp"
+#include "messages.hpp"
 
 namespace meteor {
 	struct server {
@@ -12,7 +16,7 @@ namespace meteor {
 			virtual void on_connect(uint32 id) = 0;
 			virtual void on_disconnect(uint32 id, bool timeout) = 0;
 			virtual void on_send(uint32 id, byte_stream_writer& writer) = 0;
-			virtual void on_receive(uint32 id, byte_stream_reader& reader) = 0;
+			virtual void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) = 0;
 		};
 
 		server(listener* listener)
@@ -56,11 +60,29 @@ namespace meteor {
 		}
 
 		void transmit() {
+			// send all the packages at a fixed rate
 
+			if (timer_check(m_prev_time)) {
+				m_server_sequence++;
+
+				for (int i = 0; i < MAX_CLIENTS; i++) {
+					if (m_clients[i].m_connection.m_status == connection::status::CONNECTED) {
+						m_clients[i].m_connection.m_sequence = m_server_sequence;
+
+						send_payload(m_clients[i].m_connection);
+					}
+				}
+			}
 		}
 
-		bool init(const ip_endpoint& endpoint);
+		bool init(const ip_endpoint& endpoint) {
+			network::query_local_addresses(m_local_addresses);
+			m_local_address = m_local_addresses[0];
+		}
 		void shut();
+
+		void perform_timeout_check();
+		void remove_disconnected_connections();
 
 		bool contains(const ip_endpoint& endpoint) const {
 			for (const auto& conn : m_connections) {
@@ -82,6 +104,28 @@ namespace meteor {
 				return;
 			}
 
+
+			if (~packet.m_magic == PROTOCOL_MAGIC) {
+				//send disconnect packet with reason as wrong magic
+				std::string_view message = "You have the wrong magic";
+
+				send_disconnect(endpoint, disconnect_reason_type::WRONG_MAGIC, message);
+			} else if (~packet.m_version == PROTOCOL_VERSION) {
+				//Send disconnect packet with reason as wrong version
+				std::string_view message = "You have the wrong version";
+
+				send_disconnect(endpoint, disconnect_reason_type::WRONG_VERSION, message);
+			}
+			else {
+				add_client(endpoint);
+			}
+			
+
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (m_clients[i].m_connection.m_endpoint == endpoint) {
+					send_connect(m_clients[i].m_connection);
+				}
+			}
 
 		}
 
@@ -118,8 +162,21 @@ namespace meteor {
 				debug::error("Unable to read payload packet");
 				return;
 			}
+			
 
-			//m_listener->on_receive(conn->id(), reader);
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (m_clients[i].m_connection.m_endpoint == endpoint) {
+					if (m_clients[i].m_connection.m_status == connection::status::CONNECTING || m_clients[i].m_connection.m_status == connection::status::CONNECTED) {
+						m_clients[i].m_connection.m_status = connection::status::CONNECTED;
+						if (packet.m_sequence > m_clients[i].m_connection.m_sequence) {
+							m_clients[i].m_connection.m_last_receive_time = GetTime();
+							m_clients[i].m_connection.m_acknowledge = packet.m_sequence;
+						}
+					}
+
+					m_listener->on_receive(m_clients[i].m_connection.m_id, packet.m_sequence, reader);
+				}
+			}
 		}
 
 		bool send_connect(connection& conn) {
@@ -130,6 +187,15 @@ namespace meteor {
 			if (!packet.write(writer)) {
 				debug::error("Connect failed to send");
 				return false;
+			}
+
+			if (!m_socket.send_to(conn.m_endpoint, stream)) {
+				debug::error("Failed to send connect packet back to: %d.%d.%d.%d",
+					conn.m_endpoint.address().a(),
+					conn.m_endpoint.address().b(),
+					conn.m_endpoint.address().c(),
+					conn.m_endpoint.address().d()
+				);
 			}
 
 			return true;
@@ -149,18 +215,53 @@ namespace meteor {
 
 			m_listener->on_send(conn.m_id, writer);
 
+			//send data, increment sequence after data sent
+
+
+			if (!m_socket.send_to(conn.m_endpoint, stream)) {
+				debug::error("Could not send payload to: %d.%d.%.d.%d",
+					conn.m_endpoint.address().a(),
+					conn.m_endpoint.address().b(),
+					conn.m_endpoint.address().c(),
+					conn.m_endpoint.address().d()
+				);
+			}
+
 			return true;
 		}
 
 		bool send_disconnect(const ip_endpoint& endpoint,
 			const disconnect_reason_type reason,
-			std::string_view message);
+			std::string_view message) {
+			disconnect_packet packet;
+			packet.m_reason = (uint8)reason;
+
+			byte_stream stream;
+			byte_stream_writer writer(stream);
+
+			if (!packet.write(writer)) {
+				debug::error("Failed to write disconnect packet");
+				return false;
+			}
+
+			if (!m_socket.send_to(endpoint, stream)) {
+				debug::error("Failed to send disconnect packet");
+				return false;
+			}
+
+			return true;
+		}
 
 		listener*				m_listener = nullptr;
 		udp_socket				m_socket;
 		ip_endpoint				m_endpoint;
 		uint32					m_id_counter = 0;
+		uint32                  m_server_sequence = 0;
 		std::vector<connection> m_connections;
+		double                  m_prev_time = 0;
+		ip_endpoint             m_local_endpoint;
+		ip_address              m_local_address;
+		std::vector<ip_address> m_local_addresses;
 	};
 
 	struct application : server::listener {
@@ -187,11 +288,60 @@ namespace meteor {
 		}
 
 		void on_send(uint32 id, byte_stream_writer& writer) {
-
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (m_clients[i].m_connection.m_id == id) {
+					// create message with clients data and write it to the writer
+				}
+			}
 		}
 
 		void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) {
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (m_clients[i].m_connection.m_id == id) {
+					if (m_clients[i].m_connection.m_sequence < sequence) {
+						auto messageType = (message_type)reader.peek();
 
+						switch (messageType)
+						{
+							case message_type::ENTITY_STATE:
+							{
+								entity_state_message message;
+
+								if (!message.read(reader)) {
+									debug::error("Could not read snapshot message");
+									return;
+								}
+								break;
+							}
+							case message_type::MOVEMENT_REQUEST:
+							{
+								movement_request_message message;
+
+								if (!message.read(reader)) {
+									debug::error("Could not read movement request message");
+									return;
+								}
+								break;
+							}
+							case message_type::LATENCY:
+							{
+								latency_message message;
+
+								if (!message.read(reader)) {
+									debug::error("Could not read latency message");
+									return;
+								}
+								break;
+							}
+							default:
+							{
+								debug::error("Invalid message received");
+								break;
+							}
+						}
+					}
+				}
+			}
 		}
 
 		server m_server;

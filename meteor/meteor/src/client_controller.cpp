@@ -2,31 +2,62 @@
 
 #include "client_controller.hpp"
 #include "connection.hpp"
+#include "entities.hpp"
 
 namespace meteor {
-	void add_client(ip_endpoint endpoint, std::vector<Client>& clients) {
-		Client client;
-		client.m_connection.m_endpoint = endpoint;
-		client.m_connection.m_id = generate_id(clients);
-		client.m_connection.m_last_receive_time = GetTime();
-		client.m_connection.m_sequence = 0;
-		client.m_connection.m_status = connection::status::CONNECTING;
-		clients.push_back(client);
-		debug::info("Client created");
-	}
 
-	uint32 generate_id(std::vector<Client> &clients) {
-		uint32 id = 0;
-		uint32 temp_id = 0;
+	client			  m_clients[MAX_CLIENTS];
+	client_controller m_client_controllers[MAX_CLIENTS];
 
-		for (int i = 0; i < clients.size(); i++) {
-			if (temp_id < clients[i].m_connection.m_id) {
-				temp_id = clients[i].m_connection.m_id;
+	void add_client(ip_endpoint endpoint) {
+		int available_slot = -1;
+		for (int i = 0; i < MAX_CLIENTS; i++) {
+			if (m_clients[i].m_connection.m_status == connection::status::DISCONNECTED ||
+				m_clients[i].m_connection.m_id == 0) {
+				available_slot = i;
+				break;
 			}
 		}
 
-		id = (temp_id += 1);
+		// Check if we found a slot
+		if (available_slot == -1) {
+			debug::info("Server full - cannot add client");
+			return;
+		}
 
-		return id;
+		client client;
+		client.m_connection.m_endpoint = endpoint;
+		client.m_connection.m_id = generate_id();
+		client.m_connection.m_last_receive_time = GetTime();
+		client.m_connection.m_sequence = 0;
+		client.m_connection.m_status = connection::status::CONNECTING;
+
+		create_player(client.m_connection.m_id);
+
+		for (int i = 0; i < m_all_players.size(); i++) {
+			if (m_all_players[i].m_id == client.m_connection.m_id) {
+				client.m_player = m_all_players[i];
+			}
+		}
+
+		client_controller controller;
+		controller.m_client = client;
+		
+		m_clients[available_slot] = client;
+		m_client_controllers[available_slot] = controller;
+		
+		debug::info("Client created");
+	}
+
+	uint32 generate_id() {
+		uint32 temp_id = 0;
+
+		for (int i = 0; i < MAX_CLIENTS; i++) {
+			if (temp_id < m_clients[i].m_connection.m_id) {
+				temp_id = m_clients[i].m_connection.m_id;
+			}
+		}
+
+		return temp_id + 1;
 	}
 }

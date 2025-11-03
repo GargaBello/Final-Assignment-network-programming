@@ -7,13 +7,35 @@
 #include "entities.hpp"
 
 namespace meteor {
+
+	constexpr uint8
+		MAP_WIDTH         = 16,
+		MAP_HEIGHT        = 16,
+		NAME_LENGTH_MAX   = 16,
+		MAP_X_POSITION    = 20, 
+		MAP_Y_POSITION	  = 20, 
+		SPAWN_AREA_OFFSET = 8,
+		MAX_PLAYERS       = 4;
+
+	constexpr double
+		BOMB_EXPLOSION_TIME     = 3.0,
+		BOMB_PLACE_INTERVAL_MIN = 1.0;
+
+	enum class player_actions : uint8 {
+		INVALID,
+		STAND_STILL,
+		MOVE_RIGHT,
+		MOVE_LEFT,
+		MOVE_UP,
+		MOVE_DOWN,
+		PLACE_BOMB
+	};
+
 	struct game {
 		game() = default;
-		int MAP_WIDTH = 900, MAP_HEIGHT = 900, MAP_X_POSITION = 20, MAP_Y_POSITION = 20, SPAWN_AREA_OFFSET = 8;
-		int MAX_PLAYERS = 4;
 
 		void set_map_size(Rectangle rec);
-		void create_terrain() {
+		/*void create_terrain() {
 			for (int x = MAP_X_POSITION += SPAWN_AREA_OFFSET; x < MAP_WIDTH; x += 10) {
 				std::vector<terrain> vector = std::vector<terrain>();
 
@@ -26,10 +48,10 @@ namespace meteor {
 
 				m_terrain.push_back(vector);
 			}
-		}
+		}*/
 
 		void init() {
-			create_terrain();
+			//create_terrain();
 		}
 
 		void update() {
@@ -58,5 +80,26 @@ namespace meteor {
 		std::vector<entity> m_entities;
 		std::vector<std::vector<terrain>> m_terrain;
 		
+	};
+
+	struct tilemap {
+
+		tilemap()
+			: m_width(MAP_WIDTH)
+			, m_height(MAP_HEIGHT)
+		{
+			m_tiles = new uint8[m_width * m_height];
+		}
+
+		const uint8
+			m_width,
+			m_height;
+
+		uint8* m_tiles;
+
+		void set_tile(const uint8 x, const uint8 y) const {
+			assert(x < m_width && y < m_height);
+			if (x > m_width || y < m_height) return;
+		}
 	};
 }

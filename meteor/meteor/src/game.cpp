@@ -8,7 +8,7 @@ namespace meteor {
 
 	}
 
-	void create_terrain(int width, int height, int posx, int posy, int offset, game game) {
+	/*void create_terrain(int width, int height, int posx, int posy, int offset, game game) {
 		for (int x = posx += offset; x < width; x++) {
 			std::vector<terrain> vector = std::vector<terrain>();
 
@@ -19,12 +19,12 @@ namespace meteor {
 			
 			game.m_terrain.push_back(vector);
 		}
-	}
+	}*/
 
 	void init() {
-		game game; 
+		//game game; 
 
-		create_terrain(game.MAP_WIDTH, game.MAP_HEIGHT, game.MAP_X_POSITION, game.MAP_Y_POSITION, game.SPAWN_AREA_OFFSET, game);
+		//create_terrain(game.MAP_WIDTH, game.MAP_HEIGHT, game.MAP_X_POSITION, game.MAP_Y_POSITION, game.SPAWN_AREA_OFFSET, game);
 	}
 
 	void update() {

@@ -4,11 +4,12 @@
 
 namespace meteor
 {
-   entity_state_message::entity_state_message(int32 id, Vector2 position, Color color)
+   entity_state_message::entity_state_message(int32 id, Vector2 position, Color color, entity_type ent_type)
       : m_type((uint8)message_type::ENTITY_STATE)
       , m_id(id)
       , m_position(position)
       , m_color(color)
+      , m_entity_type((uint8)ent_type)
    {
    }
 
@@ -17,6 +18,7 @@ namespace meteor
    {
       bool success = true;
       success &= stream.serialize(message.m_type);
+      success &= stream.serialize(message.m_entity_type);
       success &= stream.serialize(message.m_id);
       success &= stream.serialize(message.m_position.x);
       success &= stream.serialize(message.m_position.y);
@@ -87,6 +89,56 @@ namespace meteor
    bool mouse_position_message::read(byte_stream_reader& reader)
    {
       return serialize(*this, reader);
+   }
+
+   movement_request_message::movement_request_message(uint8 move_req)
+       : m_type((uint8)message_type::MOVEMENT_REQUEST)
+       , m_movement_request(move_req)
+   {
+   }
+
+   template <typename T>
+   bool serialize(movement_request_message &message, T& stream) 
+   {
+       bool success = true;
+       success &= stream.serialize(message.m_type);
+       success &= stream.serialize(message.m_movement_request);
+       return success;
+   }
+
+   bool movement_request_message::read(byte_stream_reader& reader) 
+   {
+       return serialize(*this, reader);
+   }
+
+   bool movement_request_message::write(byte_stream_writer& writer) 
+   {
+       return serialize(*this, writer);
+   }
+
+   snapshot_message::snapshot_message(snapshot shot)
+       : m_type((uint8)message_type::SNAPSHOT)
+       , m_shot(shot)
+   {
+   }
+
+   template <typename T>
+   bool serialize(snapshot_message& message, T& stream) 
+   {
+       bool success = true;
+       success &= stream.serialize(message.m_type);
+       success &= stream.serialize(message.m_shot.m_sequence);
+       return success;
+   }
+
+   bool snapshot_message::read(byte_stream_reader& reader)
+   {
+       return serialize(*this, reader);
+   }
+
+   bool snapshot_message::write(byte_stream_writer& writer)
+   {
+       return serialize(*this, writer);
    }
 
 } // !meteor

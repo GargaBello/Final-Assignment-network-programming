@@ -5,18 +5,32 @@
 #include "connection.hpp"
 
 namespace meteor {
-	struct Client {
-		Client() = default;
 
-		player	   m_player;
-		connection m_connection;
+	constexpr int MAX_CLIENTS = 4;
+
+	struct client {
+		client() = default;
+
+		player	              m_player;
+		connection            m_connection;
+
 	};
 
 	struct client_controller {
 
-		void   add_client(ip_endpoint endpoint, std::vector<Client>& clients);
-		uint32 generate_id(std::vector<Client> &clients);
+		client_controller() = default;
 
-		std::vector<Client> m_clients;
+
+
+		client m_client;
 	};
+
+	void add_client(ip_endpoint endpoint);
+
+	uint32 generate_id();
+
+	//std::vector<Client> m_clients;
+
+	extern client			  m_clients[MAX_CLIENTS];
+	extern client_controller  m_client_controllers[MAX_CLIENTS];
 }

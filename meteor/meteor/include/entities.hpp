@@ -3,6 +3,7 @@
 #pragma once
 
 #include "raylib.h"
+#include "network.hpp"
 
 namespace meteor {
 
@@ -20,6 +21,7 @@ namespace meteor {
 		void set_cooldown(float cd);
 
 		float m_cooldown = 0;
+		uint32 m_id = 0;
 	};
 
 	struct bomb : entity {
@@ -27,6 +29,7 @@ namespace meteor {
 		void set_size(Rectangle rec);
 		void set_timer(float timer);
 
+		uint32     m_id = 0;
 		float	  m_explosion_timer = 0;
 		Rectangle m_size_rec = { 0, 0, 0, 0 };
 	};
@@ -42,4 +45,13 @@ namespace meteor {
 		Vector2 m_origin = {0,0};
 		Rectangle m_size_rec = { 0,0,0,0 };
 	};
+
+	std::vector<player>  m_all_players;
+	std::vector<bomb>    m_all_bombs;
+	std::vector<terrain> m_all_terrain;
+
+
+	void create_bomb(uint8 id, Vector2 position);
+
+	void create_player(uint32 id);
 }

@@ -4,6 +4,7 @@
 
 #include "raylib.h"
 #include "network.hpp"
+#include "snapshot.hpp"
 
 namespace meteor
 {
@@ -11,6 +12,8 @@ namespace meteor
       LATENCY,
       POSITION,
       ENTITY_STATE,
+      SNAPSHOT,
+      MOVEMENT_REQUEST
    };
 
    enum class movement_request : uint8 {
@@ -20,14 +23,21 @@ namespace meteor
        DOWN
    };
 
+   enum class entity_type : uint8 {
+       PLAYER,
+       BOMB,
+       TERRAIN
+   };
+
    struct entity_state_message {
       entity_state_message() = default;
-      entity_state_message(int32 id, Vector2 position, Color color);
+      entity_state_message(int32 id, Vector2 position, Color color, entity_type ent_type);
 
       bool write(byte_stream_writer& writer);
       bool read(byte_stream_reader& reader);
       
       uint8   m_type = 0;
+      uint8   m_entity_type = 0;
       int32   m_id = 0;
       Vector2 m_position = {};
       Color   m_color = {};
@@ -55,5 +65,27 @@ namespace meteor
       uint8 m_type = 0;
       float m_x = 0;
       float m_y = 0;
+   };
+
+   struct movement_request_message {
+       movement_request_message() = default;
+       movement_request_message(uint8 move_req);
+
+       bool write(byte_stream_writer& writer);
+       bool read(byte_stream_reader& reader);
+
+       uint8 m_type = 0;
+       uint8 m_movement_request = 0;
+   };
+
+   struct snapshot_message {
+       snapshot_message() = default;
+       snapshot_message(snapshot shot);
+
+       bool write(byte_stream_writer& writer);
+       bool read(byte_stream_reader& reader);
+
+       uint8    m_type = 0;
+       snapshot m_shot = {};
    };
 } // !meteor
