@@ -56,6 +56,8 @@ namespace meteor {
 					debug::error("Invalid packet received");
 					break;
 				}
+
+				counter--;
 			}
 		}
 
@@ -75,14 +77,41 @@ namespace meteor {
 			}
 		}
 
-		bool init(const ip_endpoint& endpoint) {
+		//bool init(const ip_endpoint& endpoint) 
+		bool init() {
 			network::query_local_addresses(m_local_addresses);
 			m_local_address = m_local_addresses[0];
+			m_local_endpoint = { m_local_address, 54321 };
+
+			if (!m_socket.open_and_bind(m_local_endpoint)) {
+				debug::info("Could not bind socket");
+				return false;
+			}
+
+			return true;
 		}
+
+
 		void shut();
 
-		void perform_timeout_check();
-		void remove_disconnected_connections();
+		void perform_timeout_check(connection& conn) {
+			double current_time = GetTime();
+			float timer = 5.0f;
+
+			if ((current_time - conn.m_last_receive_time) >= timer) {
+				conn.m_status = connection::status::DISCONNECTED;
+				send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out"); 
+				m_listener->on_disconnect(conn.m_id, true);
+			}
+		}
+
+		void remove_disconnected_connections(connection& conn) {
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (m_clients[i].m_connection.m_status == connection::status::DISCONNECTING || m_clients[i].m_connection.m_status == connection::status::DISCONNECTED) {
+					
+				}
+			}
+		}
 
 		bool contains(const ip_endpoint& endpoint) const {
 			for (const auto& conn : m_connections) {
@@ -117,13 +146,23 @@ namespace meteor {
 				send_disconnect(endpoint, disconnect_reason_type::WRONG_VERSION, message);
 			}
 			else {
-				add_client(endpoint);
+				bool client_present = false;
+
+				for (int i = 0; i < MAX_CLIENTS; i++) {
+					if (m_clients[i].m_connection.m_endpoint == endpoint) {
+						client_present = true;
+					}
+				}
+
+				if (!client_present) {
+					add_client(endpoint);
+				}
 			}
 			
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
-					send_connect(m_clients[i].m_connection);
+					send_connect(m_clients[i].m_connection, m_clients[i].m_player.m_id);
 				}
 			}
 
@@ -141,7 +180,15 @@ namespace meteor {
 				return;
 			}
 
-			//m_listener->on_disconnect(conn->id(), false);
+			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "You are disconnecting");
+
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				if (m_clients[i].m_connection.m_endpoint == endpoint) {
+					m_clients[i].m_connection.m_status = connection::status::DISCONNECTING;
+					remove_disconnected_connections(m_clients[i].m_connection);
+					m_listener->on_disconnect(m_clients[i].m_connection.m_id, false);
+				}
+			}
 
 			//Remove connection
 		}
@@ -149,6 +196,7 @@ namespace meteor {
 		void handle_payload_packet(const ip_endpoint& endpoint, byte_stream_reader& reader) {
 			if (!contains(endpoint)) {
 				debug::error("Payload packet received from ip not in connections");
+				return;
 			}
 
 			/*if (conn->is_connecting()) {
@@ -171,16 +219,16 @@ namespace meteor {
 						if (packet.m_sequence > m_clients[i].m_connection.m_sequence) {
 							m_clients[i].m_connection.m_last_receive_time = GetTime();
 							m_clients[i].m_connection.m_acknowledge = packet.m_sequence;
+							m_listener->on_receive(m_clients[i].m_connection.m_id, packet.m_sequence, reader);
 						}
 					}
-
-					m_listener->on_receive(m_clients[i].m_connection.m_id, packet.m_sequence, reader);
 				}
 			}
 		}
 
-		bool send_connect(connection& conn) {
+		bool send_connect(connection& conn, uint32 id) {
 			connect_packet packet;
+			packet.m_id = id;
 
 			byte_stream stream;
 			byte_stream_writer writer(stream);
@@ -262,6 +310,8 @@ namespace meteor {
 		ip_endpoint             m_local_endpoint;
 		ip_address              m_local_address;
 		std::vector<ip_address> m_local_addresses;
+		snapshot                m_snapshot;
+		snapshot_queue          m_snap_queue;
 	};
 
 	struct application : server::listener {
@@ -272,11 +322,14 @@ namespace meteor {
 
 		void init() {
 			m_game.init();
+			m_server.init();
 		}
 
 		void update() {
-			m_server.update();
+			m_server.receive();
 			m_game.update();
+			m_queue.create_snapshot(m_game.m_tick);
+			m_server.transmit();
 		}
 
 		void on_connect(uint32 id) {
@@ -291,6 +344,23 @@ namespace meteor {
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_id == id) {
 					// create message with clients data and write it to the writer
+
+					byte_stream stream;
+					payload_packet packet(m_server.m_server_sequence, m_clients->m_connection.m_acknowledge);
+
+					if (!packet.write(writer)) {
+						debug::error("Could not write payload packet");
+						return;
+					}
+
+					snapshot_message message(
+						m_queue.m_snapshots.front(),
+						m_queue.m_snapshots.front().m_tick
+					);
+
+					if (!message.write(writer)) {
+						debug::error("Could not write snapshot_message");
+					}
 				}
 			}
 		}
@@ -303,34 +373,27 @@ namespace meteor {
 
 						switch (messageType)
 						{
-							case message_type::ENTITY_STATE:
-							{
-								entity_state_message message;
+							case message_type::SNAPSHOT: {
+								snapshot_message message;
 
 								if (!message.read(reader)) {
 									debug::error("Could not read snapshot message");
 									return;
 								}
+
+								
 								break;
 							}
-							case message_type::MOVEMENT_REQUEST:
-							{
-								movement_request_message message;
+							case message_type::INPUT_ACTION: {
+								input_action_message message;
 
 								if (!message.read(reader)) {
-									debug::error("Could not read movement request message");
+									debug::error("Could not read input message");
 									return;
 								}
-								break;
-							}
-							case message_type::LATENCY:
-							{
-								latency_message message;
 
-								if (!message.read(reader)) {
-									debug::error("Could not read latency message");
-									return;
-								}
+
+
 								break;
 							}
 							default:
@@ -344,7 +407,8 @@ namespace meteor {
 			}
 		}
 
-		server m_server;
-		game   m_game;
+		server         m_server;
+		game		   m_game;
+		snapshot_queue m_queue;
 	};
 }

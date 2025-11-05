@@ -17,14 +17,15 @@ namespace meteor
    };
 
    enum class disconnect_reason_type : uint8 {
-       CUSTOM,
+       TIMED_OUT,
        WRONG_VERSION,
-       WRONG_MAGIC
+       WRONG_MAGIC,
+       DISCONNECTING
    };
 
    struct connect_packet {
        connect_packet() = default;
-       connect_packet(uint32 magic, uint32 version);
+       connect_packet(uint32 magic, uint32 version, uint32 id);
 
        bool write(byte_stream_writer& writer);
        bool read(byte_stream_reader& reader);
@@ -32,6 +33,7 @@ namespace meteor
        uint8  m_type = 0;
        uint32 m_magic = 0;
        uint32 m_version = 0;
+       uint32 m_id = 0;
        
    };
 

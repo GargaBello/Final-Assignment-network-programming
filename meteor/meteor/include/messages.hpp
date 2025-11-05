@@ -9,11 +9,11 @@
 namespace meteor
 {
    enum class message_type : uint8 {
-      LATENCY,
+      /*LATENCY,
       POSITION,
-      ENTITY_STATE,
+      ENTITY_STATE,*/
       SNAPSHOT,
-      MOVEMENT_REQUEST
+      INPUT_ACTION
    };
 
    enum class movement_request : uint8 {
@@ -29,7 +29,7 @@ namespace meteor
        TERRAIN
    };
 
-   struct entity_state_message {
+   /*struct entity_state_message {
       entity_state_message() = default;
       entity_state_message(int32 id, Vector2 position, Color color, entity_type ent_type);
 
@@ -65,27 +65,29 @@ namespace meteor
       uint8 m_type = 0;
       float m_x = 0;
       float m_y = 0;
-   };
+   };*/
 
-   struct movement_request_message {
-       movement_request_message() = default;
-       movement_request_message(uint8 move_req);
+   struct input_action_message {
+       input_action_message() = default;
+       input_action_message(uint8 move_req, uint32 tick);
 
        bool write(byte_stream_writer& writer);
        bool read(byte_stream_reader& reader);
 
-       uint8 m_type = 0;
-       uint8 m_movement_request = 0;
+       uint8  m_type = 0;
+       uint32 m_tick = 0;
+       uint8  m_movement_request = 0;
    };
 
    struct snapshot_message {
        snapshot_message() = default;
-       snapshot_message(snapshot shot);
+       snapshot_message(snapshot shot, uint32 tick);
 
        bool write(byte_stream_writer& writer);
        bool read(byte_stream_reader& reader);
 
        uint8    m_type = 0;
+       uint32   m_tick = 0;
        snapshot m_shot = {};
    };
 } // !meteor

@@ -20,7 +20,7 @@ namespace meteor {
 
 		client_controller() = default;
 
-
+		void update_clients_player();
 
 		client m_client;
 	};

@@ -4,7 +4,7 @@
 
 namespace meteor
 {
-   entity_state_message::entity_state_message(int32 id, Vector2 position, Color color, entity_type ent_type)
+   /*entity_state_message::entity_state_message(int32 id, Vector2 position, Color color, entity_type ent_type)
       : m_type((uint8)message_type::ENTITY_STATE)
       , m_id(id)
       , m_position(position)
@@ -43,9 +43,9 @@ namespace meteor
       : m_type((uint8)message_type::LATENCY)
       , m_time(time)
    {
-   }
+   }*/
 
-   template <typename T>
+   /*template <typename T>
    bool serialize(latency_message &message, T& stream)
    {
       bool success = true;
@@ -89,16 +89,37 @@ namespace meteor
    bool mouse_position_message::read(byte_stream_reader& reader)
    {
       return serialize(*this, reader);
-   }
+   }*/
 
-   movement_request_message::movement_request_message(uint8 move_req)
-       : m_type((uint8)message_type::MOVEMENT_REQUEST)
+
+    template <typename T_from, typename T_to>
+    bool serialize(T_from& type, byte_stream_writer& stream)
+    {
+        bool success = true;
+        success &= stream.serialize((T_to)type);
+        return success;
+    }
+
+    template <typename T_from, typename T_to>
+    bool serialize(T_from& type, byte_stream_reader& stream)
+    {
+        bool success = true;
+        T_to v = 0;
+        success &= stream.serialize(v);
+        type = (T_from)v;
+        return success;
+    }
+
+
+    input_action_message::input_action_message(uint8 move_req, uint32 tick)
+       : m_type((uint8)message_type::INPUT_ACTION)
        , m_movement_request(move_req)
+       , m_tick(tick)
    {
    }
 
    template <typename T>
-   bool serialize(movement_request_message &message, T& stream) 
+   bool serialize(input_action_message&message, T& stream)
    {
        bool success = true;
        success &= stream.serialize(message.m_type);
@@ -106,28 +127,76 @@ namespace meteor
        return success;
    }
 
-   bool movement_request_message::read(byte_stream_reader& reader) 
+   bool input_action_message::read(byte_stream_reader& reader)
    {
        return serialize(*this, reader);
    }
 
-   bool movement_request_message::write(byte_stream_writer& writer) 
+   bool input_action_message::write(byte_stream_writer& writer)
    {
        return serialize(*this, writer);
    }
 
-   snapshot_message::snapshot_message(snapshot shot)
+   snapshot_message::snapshot_message(snapshot shot, uint32 tick)
        : m_type((uint8)message_type::SNAPSHOT)
        , m_shot(shot)
+       , m_tick(tick)
    {
    }
 
+   //Taken directly from Theos genius
+
    template <typename T>
-   bool serialize(snapshot_message& message, T& stream) 
+   bool serialize(player& player, T& stream) {
+       bool success = true;
+
+       success &= stream.serialize(player.m_id);
+       success &= stream.serialize(player.m_hit);
+       success &= stream.serialize(player.m_position.x);
+       success &= stream.serialize(player.m_position.y);
+       success &= stream.serialize(player.m_cooldown);
+
+       return success;
+   }
+
+   template <typename T>
+   bool serialize(bomb& bomb, T& stream) {
+       bool success = true;
+
+       success &= stream.serialize(bomb.m_id);
+       success &= stream.serialize(bomb.m_explosion_timer);
+       success &= stream.serialize(bomb.m_position.x);
+       success &= stream.serialize(bomb.m_position.y);
+
+       return success;
+   }
+
+   template <typename T>
+   bool serialize(snapshot& shot, T& stream) {
+       bool success = true;
+
+       for (int i = 0; i < MAX_PLAYERS; i++) {
+           success &= serialize(shot.m_bombs[i], stream);
+           success &= serialize(shot.m_players[i], stream);
+       }
+
+       /*for (uint8 tile : m_all_terrain) {
+           success &= stream.serialize(tile);
+       }*/
+
+       return success;
+   }
+
+   template <typename T>
+   bool serialize(snapshot_message& message, T& stream)
    {
        bool success = true;
+
+       //success &= serialize<message_type, uint8>(message.m_type, stream);
        success &= stream.serialize(message.m_type);
-       success &= stream.serialize(message.m_shot.m_sequence);
+       success &= stream.serialize(message.m_tick);
+       success &= serialize(message.m_shot, stream);
+
        return success;
    }
 

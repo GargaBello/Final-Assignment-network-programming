@@ -4,34 +4,60 @@
 
 namespace meteor {
 
-	void set_map_size(Rectangle rec) {
-
+	const player& game_state::get_player(const int index) const
+	{
+		assert(index < MAX_PLAYERS && index >= 0);
+		if (index >= MAX_PLAYERS) return m_players[MAX_PLAYERS - 1];
+		else if (index < 0)		  return m_players[0];
+		else					  return m_players[index];
 	}
 
-	/*void create_terrain(int width, int height, int posx, int posy, int offset, game game) {
-		for (int x = posx += offset; x < width; x++) {
-			std::vector<terrain> vector = std::vector<terrain>();
-
-			for (int y = posy += offset; y < height; y++) {
-				terrain ter;
-				vector.push_back(ter);
-			}
-			
-			game.m_terrain.push_back(vector);
-		}
-	}*/
-
-	void init() {
-		//game game; 
-
-		//create_terrain(game.MAP_WIDTH, game.MAP_HEIGHT, game.MAP_X_POSITION, game.MAP_Y_POSITION, game.SPAWN_AREA_OFFSET, game);
+	const bomb& game_state::get_bomb(const int index) const
+	{
+		assert(index < MAX_PLAYERS && index >= 0);
+		if (index >= MAX_PLAYERS) return m_bombs[MAX_PLAYERS - 1];
+		else if (index < 0)		  return m_bombs[0];
+		else					  return m_bombs[index];
 	}
 
-	void update() {
+	const tilemap& game_state::get_tilemap() const
+	{
 		
+		return m_tilemap;
 	}
 
-	void draw() {
-		
+	const bool game_state::is_default() const
+	{
+		return m_players[0].m_prev_action == player::action::INVALID;
+	}
+
+	bool tilemap::is_tile_active(const uint8 x, const uint8 y) const
+	{
+		assert(valid_tile(x, y));
+
+		uint8 byte = *(m_tiles + ((x + y * WIDTH) / 8));
+		uint8 bitmask = (uint8)1 << ((x + y * WIDTH) % 8);
+
+		return (byte & bitmask) != 0;
+	}
+
+	bool tilemap::is_tile_active(const uint32 index) const
+	{
+		assert(index < tilemap::COUNT);
+
+		uint8 byte = *(m_tiles + (index / 8));
+		uint8 bitmask = (uint8)1 << (index % 8);
+
+		return (byte & bitmask) != 0;			// & is the bitwise "and" operator, so if the result is higher than 0, that bit is active.
+	}
+
+	void tilemap::set_tile(const uint8 x, const uint8 y, bool value)
+	{
+		assert(valid_tile(x, y));
+		uint8& byte = *(m_tiles + ((x + y * WIDTH) / 8));
+		uint8 bitmask = (uint8)1 << ((x + y * WIDTH) % 8);
+
+		if (value) { byte = byte | bitmask; }			// | is bitwise "or", resulting in all 1s being kept from both
+		else { byte = byte & (~bitmask); }				// ~ is bitwise complement operator, flipping all bits 1->0 and 0->1
 	}
 }
