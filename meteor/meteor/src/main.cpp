@@ -9,6 +9,7 @@
 #include "network_layer.hpp"
 #include "server.hpp"
 
+#define _SERVER
 
 int main(int argc, char **argv)
 {
@@ -53,10 +54,6 @@ int main(int argc, char **argv)
            ClearBackground(GREEN);
 
            DrawText("Hello There", x, y, 40, BLACK);
-
-           for (int i = 0; i < m_all_players.size(); i++) {
-               DrawRectangle((int)m_all_players[i].m_position.x, (int)m_all_players[i].m_position.y, 50, 50, RED);
-           }
 
            EndDrawing();
        }

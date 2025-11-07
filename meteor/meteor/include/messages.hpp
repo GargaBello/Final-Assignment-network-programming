@@ -4,7 +4,7 @@
 
 #include "raylib.h"
 #include "network.hpp"
-#include "snapshot.hpp"
+#include "game.hpp"
 
 namespace meteor
 {

@@ -1,8 +1,6 @@
 //client_controller.cpp
 
 #include "client_controller.hpp"
-#include "connection.hpp"
-#include "entities.hpp"
 
 namespace meteor {
 
@@ -32,13 +30,7 @@ namespace meteor {
 		client.m_connection.m_sequence = 0;
 		client.m_connection.m_status = connection::status::CONNECTING;
 
-		create_player(client.m_connection.m_id);
-
-		for (int i = 0; i < m_all_players.size(); i++) {
-			if (m_all_players[i].m_id == client.m_connection.m_id) {
-				client.m_player = m_all_players[i];
-			}
-		}
+		
 
 		client_controller controller;
 		controller.m_client = client;
@@ -62,8 +54,8 @@ namespace meteor {
 	}
 
 
-	void client_controller::update_clients_player()
+	void client_controller::update_clients_player(player player)
 	{
-		
+
 	}
 }

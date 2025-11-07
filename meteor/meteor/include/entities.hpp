@@ -11,6 +11,7 @@ namespace meteor {
 	struct entity {
 
 		Vector2 m_position = { 0,0 };
+		Vector2 m_terrain_map_pos = { 0, 0 };
 		bool	m_hit = false;
 	};
 
@@ -35,7 +36,19 @@ namespace meteor {
 		uint32 m_id = 0;
 		uint32 m_prev_action_tick = 0;
 		action m_prev_action = action::INVALID;
-		action m_pending_action = action::INVALID;
+		action m_action = action::INVALID;
+		action m_predict_action = action::INVALID;
+
+		Vector2 m_origin = { 0,0 };
+
+#ifdef _CLIENT
+
+		bool is_player_character = false;
+
+#endif // _CLIENT
+
+
+		int pos_index[1][1] = {};
 	};
 
 	struct bomb : entity {
@@ -54,6 +67,9 @@ namespace meteor {
 			m_y = 0;
 		uint32    m_id = 0;
 		uint32    m_explosion_tick = 0;
+		uint32    m_cooldown = 0;
+
+		int pos_index[1][1] = {};
 	};
 
 	struct terrain : entity {
@@ -63,12 +79,9 @@ namespace meteor {
 		bool m_hit = false;
 		Vector2 m_origin = {0,0};
 		Rectangle m_size_rec = { 0,0,0,0 };
+
+		Vector2 m_center_of_pos = { m_origin.x + 5, m_origin.y + 5 };
 	};
-
-	extern std::vector<player>  m_all_players;
-	extern std::vector<bomb>    m_all_bombs;
-	extern std::vector<terrain> m_all_terrain;
-
 
 	void create_bomb(uint8 id, Vector2 position);
 

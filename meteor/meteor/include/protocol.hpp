@@ -25,7 +25,7 @@ namespace meteor
 
    struct connect_packet {
        connect_packet() = default;
-       connect_packet(uint32 magic, uint32 version, uint32 id);
+       connect_packet(uint8 id);
 
        bool write(byte_stream_writer& writer);
        bool read(byte_stream_reader& reader);
@@ -33,7 +33,7 @@ namespace meteor
        uint8  m_type = 0;
        uint32 m_magic = 0;
        uint32 m_version = 0;
-       uint32 m_id = 0;
+       uint8 m_id = 0;
        
    };
 

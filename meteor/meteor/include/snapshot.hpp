@@ -2,40 +2,48 @@
 
 #pragma once
 
-#include "client_controller.hpp"
 #include "raylib.h"
 #include "entities.hpp"
 #include "game.hpp"
 
 namespace meteor {
 
-	const uint8 MAX_SNAPSHOTS = 30;
+	//struct snapshot {
 
-	struct snapshot {
+	//	snapshot() = default;
 
-		snapshot() = default;
-		snapshot(uint32 tick, 
-			std::vector<player> players, 
-			std::vector<terrain> terrain, 
-			std::vector<bomb> bombs
-			);
+	//	/*snapshot(uint32 tick, 
+	//		std::vector<player> players, 
+	//		std::vector<terrain> terrain, 
+	//		std::vector<bomb> bombs
+	//		);*/
 
-		uint32				 m_tick = 0;
-		
-		std::vector<client>  m_clients;
-		std::vector<player>	 m_players;
-		std::vector<terrain> m_terrain;
-		std::vector<bomb>    m_bombs;
+	//	snapshot(uint32 tick, 
+	//		player players[MAX_PLAYERS], 
+	//		bomb bombs[MAX_PLAYERS], 
+	//		terrain_map map);
 
-	};
+	//	uint32				 m_tick = 0;
+	//	player               m_players[MAX_PLAYERS];
+	//	bomb                 m_bombs[MAX_PLAYERS];
+	//	terrain_map          m_map = {};
 
-	struct snapshot_queue {
-		snapshot_queue() = default;
+	//	/*std::vector<client>  m_clients;
+	//	std::vector<player>	 m_players;
+	//	std::vector<terrain> m_terrain;
+	//	std::vector<bomb>    m_bombs;*/
 
-		std::vector<snapshot>  m_snapshots;
+	//};
 
-		void create_snapshot(uint32 tick);
+	//struct snapshot_queue {
+	//	const uint8 MAX_SNAPSHOTS = 30;
 
-		void update();
-	};
+	//	snapshot_queue() = default;
+
+	//	std::vector<snapshot>  m_snapshots;
+
+	//	void create_snapshot(uint32 tick);
+
+	//	void update();
+	//};
 }

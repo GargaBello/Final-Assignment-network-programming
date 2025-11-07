@@ -164,7 +164,7 @@ namespace meteor
        bool success = true;
 
        success &= stream.serialize(bomb.m_id);
-       success &= stream.serialize(bomb.m_explosion_timer);
+       success &= stream.serialize(bomb.m_explosion_tick);
        success &= stream.serialize(bomb.m_position.x);
        success &= stream.serialize(bomb.m_position.y);
 

@@ -4,6 +4,7 @@
 #include "entities.hpp"
 #include "connection.hpp"
 
+
 namespace meteor {
 
 	constexpr int MAX_CLIENTS = 4;
@@ -20,7 +21,7 @@ namespace meteor {
 
 		client_controller() = default;
 
-		void update_clients_player();
+		void update_clients_player(player player);
 
 		client m_client;
 	};

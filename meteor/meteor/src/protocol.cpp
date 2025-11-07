@@ -4,7 +4,7 @@
 
 namespace meteor
 {
-	connect_packet::connect_packet(uint32 magic, uint32 version, uint32 id)
+	connect_packet::connect_packet(uint8 id)
 		: m_type((uint8) protocol_packet_type::CONNECT)
 		, m_magic(PROTOCOL_MAGIC)
 		, m_version(PROTOCOL_VERSION)
