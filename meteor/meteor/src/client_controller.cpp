@@ -42,13 +42,15 @@ namespace meteor {
 	}
 
 	uint32 generate_id() {
-		uint32 temp_id = 0;
+		uint32 temp_id = 1;
 
 		for (int i = 0; i < MAX_CLIENTS; i++) {
 			if (temp_id < m_clients[i].m_connection.m_id) {
 				temp_id = m_clients[i].m_connection.m_id;
 			}
 		}
+
+		
 
 		return temp_id + 1;
 	}

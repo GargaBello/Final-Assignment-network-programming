@@ -143,12 +143,14 @@ namespace meteor {
 		snapshot(uint32 tick,
 			player players[MAX_PLAYERS],
 			bomb bombs[MAX_PLAYERS],
-			terrain_map map);
+			terrain_map map,
+			uint8 status);
 
 		uint32				 m_tick = 0;
 		player               m_players[MAX_PLAYERS];
 		bomb                 m_bombs[MAX_PLAYERS];
 		terrain_map          m_map = {};
+		uint8				 m_status = 0;
 
 
 	};
@@ -291,9 +293,6 @@ namespace meteor {
 					m_tick = 0;
 				}
 
-
-				debug::info("Tick check");
-
 				#endif // _SERVER
 			}
 			else if (m_status == game::status::IN_GAME) {
@@ -433,7 +432,7 @@ namespace meteor {
 					}
 				}
 
-				snapshot shot(m_tick, m_players, m_bombs, m_map);
+				snapshot shot(m_tick, m_players, m_bombs, m_map, (uint8)m_status);
 
 				#endif // _SERVER
 

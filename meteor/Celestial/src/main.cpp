@@ -8,7 +8,7 @@
 #include "server.hpp"
 
 
-#define _CLIENT
+//#define _CLIENT
 
 int main(int argc, char** argv)
 {

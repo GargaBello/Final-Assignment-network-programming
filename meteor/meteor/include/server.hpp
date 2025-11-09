@@ -84,6 +84,7 @@ namespace meteor {
 					m_my_connection.m_sequence++;
 
 					send_payload(m_my_connection);
+					
 				}
 
 				#endif // _CLIENT
@@ -97,14 +98,23 @@ namespace meteor {
 
 			network::query_local_addresses(m_local_addresses);
 			m_local_address = m_local_addresses[0];
+
+#ifdef _SERVER
 			m_local_endpoint = { m_local_address, 54321 };
+#endif // _SERVER
+
+
+#ifdef _CLIENT
+			m_local_endpoint = { m_local_address, 54322 };
+#endif // _CLIENT
+
 
 			if (!m_socket.open_and_bind(m_local_endpoint)) {
 				debug::info("Could not bind socket");
 				return false;
 			}
 
-			return true;
+			
 
 
 			#ifdef _CLIENT
@@ -115,6 +125,8 @@ namespace meteor {
 			send_connect(m_my_connection, m_my_connection.m_id);
 
 			#endif // _CLIENT
+
+			return true;
 
 			/*network::query_local_addresses(m_local_addresses);
 			m_local_address = m_local_addresses[0];
@@ -129,7 +141,9 @@ namespace meteor {
 		}
 
 
-		void shut();
+		void shut() {
+			m_socket.close();
+		}
 
 		void perform_timeout_check(connection& conn) {
 			double current_time = GetTime();
@@ -199,8 +213,8 @@ namespace meteor {
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
-					send_connect(m_clients[i].m_connection, m_clients[i].m_player.m_id);
-					m_listener->on_connect(m_clients[i].m_player.m_id)
+					send_connect(m_clients[i].m_connection, m_clients[i].m_connection.m_id);
+					m_listener->on_connect(m_clients[i].m_player.m_id);
 				}
 			}
 
@@ -308,6 +322,8 @@ namespace meteor {
 				);
 			}
 
+			debug::info("Sent connect");
+
 			return true;
 		}
 
@@ -335,6 +351,8 @@ namespace meteor {
 				);
 			}
 
+			debug::info("Sent Payload");
+
 			return true;
 		}
 
@@ -356,6 +374,8 @@ namespace meteor {
 				debug::error("Failed to send disconnect packet");
 				return false;
 			}
+
+			debug::info("Sent disconnect");
 
 			return true;
 		}
@@ -396,6 +416,10 @@ namespace meteor {
 			m_server.receive();
 			m_game.update();
 			m_server.transmit();
+		}
+
+		void close() {
+			m_server.shut();
 		}
 
 		void on_connect(uint32 id) {

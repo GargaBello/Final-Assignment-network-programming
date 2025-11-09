@@ -9,7 +9,7 @@
 #include "network_layer.hpp"
 #include "server.hpp"
 
-#define _SERVER
+//#define _SERVER
 
 int main(int argc, char **argv)
 {
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 
    bool running = true;
    while (running) {
-       const float dt = GetFrameTime();
+       //const float dt = GetFrameTime();
        //running &= WindowShouldClose();
 
        double time = GetTime();
@@ -76,6 +76,8 @@ int main(int argc, char **argv)
    }
 
    network_layer.close();
+
+   app.close();
 
    return 0;
 }
