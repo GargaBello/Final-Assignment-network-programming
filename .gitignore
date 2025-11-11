@@ -4,7 +4,6 @@ meteor/.vs/
 
 # extensions
 *.exe
-*.lib
 *.dll
 *.idb
 *.so
