@@ -65,7 +65,7 @@ namespace meteor {
 			// send all the packages at a fixed rate
 
 			if (timer_check(m_prev_time)) {
-				#ifdef _SERVER
+#ifdef _SERVER
 
 				m_server_sequence++;
 
@@ -76,17 +76,18 @@ namespace meteor {
 						send_payload(m_clients[i].m_connection);
 					}
 				}
-				#endif // _SERVER
+#endif // _SERVER
 
-				#ifdef _CLIENT
+#ifdef _CLIENT
 
 				if (m_my_connection.m_status == connection::status::CONNECTING || m_my_connection.m_status == connection::status::CONNECTED) {
 					m_my_connection.m_sequence++;
 
 					send_payload(m_my_connection);
+
 				}
 
-				#endif // _CLIENT
+#endif // _CLIENT
 
 			}
 		}
@@ -98,7 +99,6 @@ namespace meteor {
 			network::query_local_addresses(m_local_addresses);
 			m_local_address = m_local_addresses[0];
 
-
 #ifdef _SERVER
 			m_local_endpoint = { m_local_address, 54321 };
 #endif // _SERVER
@@ -108,24 +108,26 @@ namespace meteor {
 			m_local_endpoint = { m_local_address, 54322 };
 #endif // _CLIENT
 
+
 			if (!m_socket.open_and_bind(m_local_endpoint)) {
 				debug::info("Could not bind socket");
 				return false;
 			}
 
-			
 
 
-			#ifdef _CLIENT
+
+#ifdef _CLIENT
 
 			m_my_connection.m_endpoint = SERVER_ENDPOINT;
 			m_my_connection.m_id = 0;
 
 			send_connect(m_my_connection, m_my_connection.m_id);
 
-			#endif // _CLIENT
+#endif // _CLIENT
 
 			return true;
+
 
 		}
 
@@ -140,7 +142,7 @@ namespace meteor {
 
 			if ((current_time - conn.m_last_receive_time) >= timer) {
 				conn.m_status = connection::status::DISCONNECTED;
-				send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out"); 
+				send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out");
 				m_listener->on_disconnect(conn.m_id, true);
 			}
 		}
@@ -172,19 +174,21 @@ namespace meteor {
 				return;
 			}
 
+			debug::info("Received connect");
 
 			if (~packet.m_magic == PROTOCOL_MAGIC) {
 				//send disconnect packet with reason as wrong magic
 				std::string_view message = "You have the wrong magic";
 
 				send_disconnect(endpoint, disconnect_reason_type::WRONG_MAGIC, message);
-			} else if (~packet.m_version == PROTOCOL_VERSION) {
+			}
+			else if (~packet.m_version == PROTOCOL_VERSION) {
 				//Send disconnect packet with reason as wrong version
 				std::string_view message = "You have the wrong version";
 
 				send_disconnect(endpoint, disconnect_reason_type::WRONG_VERSION, message);
 			}
-			#ifdef _SERVER
+#ifdef _SERVER
 			else {
 				bool client_present = false;
 
@@ -198,25 +202,25 @@ namespace meteor {
 					add_client(endpoint);
 				}
 			}
-			
+
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
-					send_connect(m_clients[i].m_connection, m_clients[i].m_player.m_id);
+					send_connect(m_clients[i].m_connection, m_clients[i].m_connection.m_id);
 					m_listener->on_connect(m_clients[i].m_player.m_id);
 				}
 			}
 
-			#endif // _SERVER
+#endif // _SERVER
 
-			#ifdef _CLIENT
+#ifdef _CLIENT
 
 			m_my_connection.m_status = connection::status::CONNECTING;
 			m_my_connection.m_id = packet.m_id;
 
 
 			m_listener->on_connect(m_my_connection.m_id);
-			#endif // _CLIENT
+#endif // _CLIENT
 		}
 
 		void handle_disconnect_packet(const ip_endpoint& endpoint, byte_stream_reader& reader) {
@@ -227,7 +231,9 @@ namespace meteor {
 				return;
 			}
 
-			#ifdef _SERVER
+			debug::info("Received disconnect");
+
+#ifdef _SERVER
 			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "You are disconnecting");
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -238,15 +244,15 @@ namespace meteor {
 				}
 			}
 
-			#endif // _SERVER
+#endif // _SERVER
 
-			#ifdef _CLIENT
+#ifdef _CLIENT
 
 			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "I am disconnecting");
 
 			m_listener->on_disconnect(m_my_connection.m_id, false);
 
-			#endif // _CLIENT
+#endif // _CLIENT
 
 		}
 
@@ -256,8 +262,10 @@ namespace meteor {
 				debug::error("Unable to read payload packet");
 				return;
 			}
-			
-			#ifdef _SERVER
+
+			debug::info("Received payload");
+
+#ifdef _SERVER
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
@@ -273,9 +281,9 @@ namespace meteor {
 			}
 
 
-			#endif // _SERVER
+#endif // _SERVER
 
-			#ifdef _CLIENT
+#ifdef _CLIENT
 
 			if (m_my_connection.m_sequence < packet.m_sequence) {
 				if (m_my_connection.m_status == connection::status::CONNECTING || m_my_connection.m_status == connection::status::CONNECTED) {
@@ -287,8 +295,8 @@ namespace meteor {
 					m_listener->on_receive(m_my_connection.m_id, packet.m_sequence, reader);
 				}
 			}
-			
-			#endif // _CLIENT
+
+#endif // _CLIENT
 
 		}
 
@@ -313,13 +321,11 @@ namespace meteor {
 
 			debug::info("Sent connect");
 
-
 			return true;
 		}
 
 		bool send_payload(connection& conn) {
-			payload_packet packet;
-			packet.m_sequence = conn.m_sequence;
+			payload_packet packet(conn.m_sequence, conn.m_acknowledge);
 
 			byte_stream stream;
 			byte_stream_writer writer(stream);
@@ -341,7 +347,7 @@ namespace meteor {
 				);
 			}
 
-			debug::info("Sent payload");
+			debug::info("Sent Payload");
 
 			return true;
 		}
@@ -350,6 +356,11 @@ namespace meteor {
 			const disconnect_reason_type reason,
 			std::string_view message) {
 			disconnect_packet packet;
+			for (client& client : m_clients) {
+				if (endpoint == client.m_connection.m_endpoint) {
+					packet.m_sequence = client.m_connection.m_sequence;
+				}
+			}
 			packet.m_reason = (uint8)reason;
 
 			byte_stream stream;
@@ -370,7 +381,7 @@ namespace meteor {
 			return true;
 		}
 
-		listener*				m_listener = nullptr;
+		listener* m_listener = nullptr;
 		udp_socket				m_socket;
 		ip_endpoint				m_endpoint;
 		uint32					m_id_counter = 0;
@@ -384,7 +395,7 @@ namespace meteor {
 #ifdef _CLIENT
 
 		const uint16 PORT = 54321;
-		const ip_endpoint SERVER_ENDPOINT = {ip_address(192, 168, 1, 53), PORT};
+		const ip_endpoint SERVER_ENDPOINT = { ip_address(192, 168, 1, 245), PORT };
 		connection m_my_connection;
 
 #endif // _CLIENT
@@ -393,7 +404,7 @@ namespace meteor {
 
 	struct application : server::listener {
 		application()
-			:m_server(this) 
+			:m_server(this)
 		{
 		}
 
@@ -430,17 +441,9 @@ namespace meteor {
 		}
 
 		void on_send(uint32 id, byte_stream_writer& writer) {
-			#ifdef _SERVER
+#ifdef _SERVER
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_id == id) {
-
-					byte_stream stream;
-					payload_packet packet(m_server.m_server_sequence, m_clients->m_connection.m_acknowledge);
-
-					if (!packet.write(writer)) {
-						debug::error("Could not write payload packet");
-						return;
-					}
 
 					snapshot_message message(
 						m_game.m_snapshot,
@@ -457,17 +460,10 @@ namespace meteor {
 					}
 				}
 			}
-			#endif // _SERVER
+#endif // _SERVER
 
-			#ifdef _CLIENT
+#ifdef _CLIENT
 
-			byte_stream stream;
-			payload_packet packet(m_server.m_my_connection.m_sequence, m_server.m_my_connection.m_acknowledge);
-
-			if (!packet.write(writer)) {
-				debug::error("Could not write cclient payload packet");
-				return;
-			}
 
 			input_action_message message;
 			message.m_type = (uint8)message_type::INPUT_ACTION;
@@ -482,15 +478,15 @@ namespace meteor {
 			if (!message.write(writer)) {
 				debug::error("Could not write input action message");
 			}
-					
-			#endif // _CLIENT
+
+#endif // _CLIENT
 
 
 		}
 
 
 		void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) {
-			#ifdef _SERVER
+#ifdef _SERVER
 
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -500,79 +496,77 @@ namespace meteor {
 
 						switch (messageType)
 						{
-							case message_type::INPUT_ACTION: {
-								input_action_message message;
+						case message_type::INPUT_ACTION: {
+							input_action_message message;
 
-								if (!message.read(reader)) {
-									debug::error("Could not read input message");
-									return;
-								}
-
-								for (int j = 0; j < MAX_PLAYERS; j++) {
-									if (m_game.m_players[j].m_id == id) {
-										m_game.m_players[j].m_action = (player::action)message.m_movement_request;
-									}
-								}
-
-								break;
+							if (!message.read(reader)) {
+								debug::error("Could not read input message");
+								return;
 							}
-							default:
-							{
-								debug::error("Invalid message received");
-								break;
+
+							for (int j = 0; j < MAX_PLAYERS; j++) {
+								if (m_game.m_players[j].m_id == id) {
+									m_game.m_players[j].m_action = (player::action)message.m_movement_request;
+								}
 							}
+
+							break;
+						}
+						default:
+						{
+							debug::error("Invalid message received");
+							break;
+						}
 						}
 					}
 				}
 			}
-			#endif // _SERVER
+#endif // _SERVER
 
-			#ifdef _CLIENT
+#ifdef _CLIENT
 
 			auto messageType = (message_type)reader.peek();
 
 			switch (messageType)
 			{
-				case meteor::message_type::SNAPSHOT: {
-					snapshot_message message;
+			case meteor::message_type::SNAPSHOT: {
+				snapshot_message message;
 
-					if (!message.read(reader)) {
-						debug::error("Could not read snapshot message");
-						return;
-					}
-
-					for (const player& player : message.m_shot.m_players) {
-						for (int i = 0; i < MAX_PLAYERS; i++) {
-							if (m_game.m_players[i].m_id == player.m_id) {
-								m_game.m_players[i] = player;
-							}
-						}
-					}
-					
-					for (const bomb& bomb : message.m_shot.m_bombs) {
-						for (int i = 0; i < MAX_PLAYERS; i++) {
-							if (m_game.m_bombs[i].m_id == bomb.m_id) {
-								m_game.m_bombs[i] = bomb;
-							}
-						}
-					}
-
-					for (int x = 0; x < m_game.m_map.ARRAY_WIDTH; x++) {
-						for (int y = 0; y < m_game.m_map.ARRAY_HEIGHT; y++) {
-							m_game.m_map.m_terrain_map[x][y] = message.m_shot.m_map.m_terrain_map[x][y];
-						}
-					}
-
-					m_game.m_status = (game::status)message.m_shot.m_status;
-
-					break;
+				if (!message.read(reader)) {
+					debug::error("Could not read snapshot message");
+					return;
 				}
-				default: {
-					break;
+
+				for (const player& player : message.m_shot.m_players) {
+					for (int i = 0; i < MAX_PLAYERS; i++) {
+						if (m_game.m_players[i].m_id == player.m_id) {
+							m_game.m_players[i] = player;
+						}
+					}
 				}
+
+				for (const bomb& bomb : message.m_shot.m_bombs) {
+					for (int i = 0; i < MAX_PLAYERS; i++) {
+						if (m_game.m_bombs[i].m_id == bomb.m_id) {
+							m_game.m_bombs[i] = bomb;
+						}
+					}
+				}
+
+				for (int x = 0; x < m_game.m_map.ARRAY_WIDTH; x++) {
+					for (int y = 0; y < m_game.m_map.ARRAY_HEIGHT; y++) {
+						m_game.m_map.m_terrain_map[x][y] = message.m_shot.m_map.m_terrain_map[x][y];
+					}
+				}
+
+				break;
+			}
+			default: {
+				break;
+			}
 			}
 
-			#endif // _CLIENT
+#endif // _CLIENT
 
 		}
 

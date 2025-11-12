@@ -128,16 +128,7 @@ namespace meteor {
 
 			return true;
 
-			/*network::query_local_addresses(m_local_addresses);
-			m_local_address = m_local_addresses[0];
-			m_local_endpoint = { m_local_address, 54321 };
-
-			if (!m_socket.open_and_bind(m_local_endpoint)) {
-				debug::info("Could not bind socket");
-				return false;
-			}
-
-			return true;*/
+			
 		}
 
 
@@ -183,6 +174,7 @@ namespace meteor {
 				return;
 			}
 
+			debug::info("Received connect");
 
 			if (~packet.m_magic == PROTOCOL_MAGIC) {
 				//send disconnect packet with reason as wrong magic
@@ -238,6 +230,8 @@ namespace meteor {
 				return;
 			}
 
+			debug::info("Received disconnect");
+
 			#ifdef _SERVER
 			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "You are disconnecting");
 
@@ -267,6 +261,8 @@ namespace meteor {
 				debug::error("Unable to read payload packet");
 				return;
 			}
+
+			debug::info("Received payload");
 			
 			#ifdef _SERVER
 
@@ -328,8 +324,7 @@ namespace meteor {
 		}
 
 		bool send_payload(connection& conn) {
-			payload_packet packet;
-			packet.m_sequence = conn.m_sequence;
+			payload_packet packet(conn.m_sequence, conn.m_acknowledge);
 
 			byte_stream stream;
 			byte_stream_writer writer(stream);
@@ -360,6 +355,11 @@ namespace meteor {
 			const disconnect_reason_type reason,
 			std::string_view message) {
 			disconnect_packet packet;
+			for (client& client : m_clients) {
+				if (endpoint == client.m_connection.m_endpoint) {
+					packet.m_sequence = client.m_connection.m_sequence;
+				}
+			}
 			packet.m_reason = (uint8)reason;
 
 			byte_stream stream;
@@ -444,14 +444,6 @@ namespace meteor {
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_id == id) {
 
-					byte_stream stream;
-					payload_packet packet(m_server.m_server_sequence, m_clients->m_connection.m_acknowledge);
-
-					if (!packet.write(writer)) {
-						debug::error("Could not write payload packet");
-						return;
-					}
-
 					snapshot_message message(
 						m_game.m_snapshot,
 						m_game.m_tick
@@ -507,6 +499,7 @@ namespace meteor {
 				if (m_clients[i].m_connection.m_id == id) {
 					if (m_clients[i].m_connection.m_sequence < sequence) {
 						auto messageType = (message_type)reader.peek();
+
 
 						switch (messageType)
 						{

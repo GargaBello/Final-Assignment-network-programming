@@ -172,6 +172,20 @@ namespace meteor
    }
 
    template <typename T>
+   bool serialize(terrain& terrain, T& stream) {
+       bool success = true;
+
+       success &= stream.serialize(terrain.m_center_of_pos);
+       success &= stream.serialize(terrain.m_hit);
+       success &= stream.serialize(terrain.m_origin);
+       success &= stream.serialize(terrain.m_position);
+       success &= stream.serialize(terrain.m_size_rec);
+       success &= stream.serialize(terrain.m_terrain_map_pos);
+       success &= stream.serialize(terrain.RECTANGLE_SIDE_LENGTH);
+
+   }
+
+   template <typename T>
    bool serialize(snapshot& shot, T& stream) {
        bool success = true;
 
