@@ -194,6 +194,14 @@ namespace meteor
            success &= serialize(shot.m_players[i], stream);
        }
 
+       const int TERRAIN_MAP_ARRAY_SIZE = 6;
+
+       for (int x = 0; x < TERRAIN_MAP_ARRAY_SIZE; x++) {
+           for (int y = 0; y < TERRAIN_MAP_ARRAY_SIZE; y++) {
+               stream.serialize(shot.m_terrain_hits[x][y]);
+           }
+       }
+
        /*for (uint8 tile : m_all_terrain) {
            success &= stream.serialize(tile);
        }*/

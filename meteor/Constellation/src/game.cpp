@@ -71,11 +71,11 @@ namespace meteor {
 		return active;
 	}
 
-	snapshot::snapshot(uint32 tick, player players[MAX_PLAYERS], bomb bombs[MAX_PLAYERS], terrain_map map, uint8 status)
+	snapshot::snapshot(uint32 tick, player players[MAX_PLAYERS], bomb bombs[MAX_PLAYERS], bool terrain_hits[6][6], uint8 status)
 		: m_tick(tick)
 		, m_players(players[MAX_PLAYERS])
 		, m_bombs(bombs[MAX_PLAYERS])
-		, m_map(map)
+		, m_terrain_hits(terrain_hits)
 		, m_status(status)
 	{
 	}

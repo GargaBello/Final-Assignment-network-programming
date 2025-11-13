@@ -175,14 +175,24 @@ namespace meteor
    bool serialize(terrain& terrain, T& stream) {
        bool success = true;
 
-       success &= stream.serialize(terrain.m_center_of_pos);
        success &= stream.serialize(terrain.m_hit);
-       success &= stream.serialize(terrain.m_origin);
-       success &= stream.serialize(terrain.m_position);
-       success &= stream.serialize(terrain.m_size_rec);
-       success &= stream.serialize(terrain.m_terrain_map_pos);
-       success &= stream.serialize(terrain.RECTANGLE_SIDE_LENGTH);
+       success &= stream.serialize(terrain.m_terrain_map_pos.x);
+       success &= stream.serialize(terrain.m_terrain_map_pos.y);
 
+       return success;
+   }
+
+   
+
+   template <typename T>
+   bool serialize(terrain_map& map, T& stream) {
+       bool success = true;
+
+       for (auto& x : map.m_terrain_map) {
+           success &= serialize(x, stream);
+       }
+
+       return success = true;
    }
 
    template <typename T>
@@ -194,7 +204,13 @@ namespace meteor
            success &= serialize(shot.m_players[i], stream);
        }
 
-       
+       const int TERRAIN_MAP_ARRAY_SIZE = 6;
+
+       for (int x = 0; x < TERRAIN_MAP_ARRAY_SIZE; x++) {
+           for (int y = 0; y < TERRAIN_MAP_ARRAY_SIZE; y++) {
+               stream.serialize(shot.m_terrain_hits[x][y]);
+           }
+       }
 
        /*for (uint8 tile : m_all_terrain) {
            success &= stream.serialize(tile);

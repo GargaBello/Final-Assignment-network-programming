@@ -395,7 +395,7 @@ namespace meteor {
 #ifdef _CLIENT
 
 		const uint16 PORT = 54321;
-		const ip_endpoint SERVER_ENDPOINT = { ip_address(192, 168, 1, 245), PORT };
+		const ip_endpoint SERVER_ENDPOINT = { ip_address(192, 168, 1, 53), PORT };
 		connection m_my_connection;
 
 #endif // _CLIENT
@@ -555,9 +555,12 @@ namespace meteor {
 
 				for (int x = 0; x < m_game.m_map.ARRAY_WIDTH; x++) {
 					for (int y = 0; y < m_game.m_map.ARRAY_HEIGHT; y++) {
-						m_game.m_map.m_terrain_map[x][y] = message.m_shot.m_map.m_terrain_map[x][y];
+						m_game.m_map.m_terrain_map[x][y].m_hit = message.m_shot.m_terrain_hits[x][y];
 					}
 				}
+
+				m_game.m_status = (game::status)message.m_shot.m_status;
+				
 
 				break;
 			}

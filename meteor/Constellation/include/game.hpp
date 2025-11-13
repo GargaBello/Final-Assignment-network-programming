@@ -143,13 +143,13 @@ namespace meteor {
 		snapshot(uint32 tick,
 			player players[MAX_PLAYERS],
 			bomb bombs[MAX_PLAYERS],
-			terrain_map map,
+			bool terrain_hits[6][6],
 			uint8 status);
 
 		uint32				 m_tick = 0;
 		player               m_players[MAX_PLAYERS];
 		bomb                 m_bombs[MAX_PLAYERS];
-		terrain_map          m_map = {};
+		bool				 m_terrain_hits[6][6];
 		uint8				 m_status = 0;
 
 
@@ -435,7 +435,16 @@ namespace meteor {
 					}
 				}
 
-				snapshot shot(m_tick, m_players, m_bombs, m_map);
+				bool terrain_hits[6][6];
+				for (int x = 0; x < m_map.ARRAY_WIDTH; x++) {
+					for (int y = 0; y < m_map.ARRAY_HEIGHT; y++) {
+						terrain_hits[x][y] = m_map.m_terrain_map[x][y].m_hit;
+					}
+				}
+
+				snapshot shot(m_tick, m_players, m_bombs, terrain_hits, (uint8)m_status);
+
+				m_snapshot = shot;
 
 				#endif // _SERVER
 
