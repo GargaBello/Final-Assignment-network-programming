@@ -473,7 +473,8 @@ namespace meteor {
 				*
 				*	overhaul snapshots
 				* 
-				* when client receives it compares it to all the snapshots in its memory and doesn't change anything if the incoming snapshot is the same as a snapshot inside the queue
+				* when client receives it compares it to all the snapshots in its memory and doesn't change anything if the incoming snapshot is the same as a snapshot inside the queue, 
+				i mean if the positions of the entities are the same or if they are hit, it should change the cooldowns and explosion ticks and such every receive probably
 				*/
 
 
