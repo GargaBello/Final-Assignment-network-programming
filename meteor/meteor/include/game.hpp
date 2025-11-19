@@ -149,7 +149,7 @@ namespace meteor {
 		uint32				 m_tick = 0;
 		player               m_players[MAX_PLAYERS];
 		bomb                 m_bombs[MAX_PLAYERS];
-		bool				 m_terrain_hits[6][6];
+		bool				 m_terrain_hits[6][6] = {};
 		uint8				 m_status = 0;
 
 
@@ -162,9 +162,6 @@ namespace meteor {
 
 		std::vector<snapshot>  m_snapshots;
 
-		void create_snapshot(uint32 tick);
-
-		void update();
 	};
 
 	struct tilemap {
@@ -233,7 +230,7 @@ namespace meteor {
 			default_bomb.m_explosion_tick = default_bomb.FUSE_TICKS;
 			for (int i = 0; i < MAX_PLAYERS; i++) {
 				m_players[i] = default_player;
-				m_players[i].m_hit = false;
+				m_players[i].m_hit = true;
 				m_bombs[i] = default_bomb;
 
 				switch (i)
@@ -269,6 +266,8 @@ namespace meteor {
 				for (int i = 0; i < MAX_CLIENTS; i++) {
 					if (m_clients[i].m_connection.m_id > 0) {
 						m_players[i].m_id = m_clients[i].m_connection.m_id;
+						m_bombs[i].m_id = m_clients[i].m_connection.m_id;
+						m_players[i].m_hit = false;
 					}
 				}
 
@@ -413,7 +412,6 @@ namespace meteor {
 					}
 				}
 
-				#ifdef _SERVER
 
 
 
@@ -432,19 +430,35 @@ namespace meteor {
 					}
 				}
 
+
+				snapshot shot;
+
 				bool terrain_hits[6][6];
 				for (int x = 0; x < m_map.ARRAY_WIDTH; x++) {
 					for (int y = 0; y < m_map.ARRAY_HEIGHT; y++) {
 						terrain_hits[x][y] = m_map.m_terrain_map[x][y].m_hit;
+						shot.m_terrain_hits[x][y] = terrain_hits[x][y];
 					}
 				}
 
-				snapshot shot(m_tick, m_players, m_bombs, terrain_hits, (uint8)m_status);
 
+				for (int i = 0; i < MAX_PLAYERS; i++) {
+
+					shot.m_players[i] = m_players[i];
+					shot.m_bombs[i] = m_bombs[i];
+				}
+
+				
+				shot.m_tick = m_tick;
+				shot.m_status = (uint8)m_status;
 				m_snapshot = shot;
 
+				m_queue.m_snapshots.insert(m_queue.m_snapshots.begin(), shot);
 
-				#endif // _SERVER
+				if (m_queue.m_snapshots.size() > m_queue.MAX_SNAPSHOTS) {
+					m_queue.m_snapshots.pop_back();
+				}
+
 
 				/*	todo make function that checks the rows a bomb was on when exploding and apply damage to whatever the explosion hit
 				*	make client
@@ -458,6 +472,8 @@ namespace meteor {
 				*	check if packets can send and shit
 				*
 				*	overhaul snapshots
+				* 
+				* when client receives it compares it to all the snapshots in its memory and doesn't change anything if the incoming snapshot is the same as a snapshot inside the queue
 				*/
 
 
@@ -551,11 +567,12 @@ namespace meteor {
 			}
 		}
 
-		player        m_players[MAX_PLAYERS] = {};
-		bomb		  m_bombs[MAX_PLAYERS] = {};
-		background	  m_background;
-		terrain_map   m_map;
-		snapshot      m_snapshot;
+		player          m_players[MAX_PLAYERS] = {};
+		bomb		    m_bombs[MAX_PLAYERS] = {};
+		background	    m_background;
+		terrain_map     m_map;
+		snapshot		m_snapshot;
+		snapshot_queue  m_queue;
 
 		uint32                            m_tick = 0;
 		uint32						      m_thirty_tick_seconds = 1800;

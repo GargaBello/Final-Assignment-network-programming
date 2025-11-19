@@ -87,6 +87,10 @@ namespace meteor {
 
 				}
 
+				if (m_my_connection.m_status == connection::status::DISCONNECTED || m_my_connection.m_status == connection::status::DISCONNECTING) {
+					send_connect(m_my_connection, m_my_connection.m_id);
+				}
+
 #endif // _CLIENT
 
 			}
@@ -122,7 +126,7 @@ namespace meteor {
 			m_my_connection.m_endpoint = SERVER_ENDPOINT;
 			m_my_connection.m_id = 0;
 
-			send_connect(m_my_connection, m_my_connection.m_id);
+			//send_connect(m_my_connection, m_my_connection.m_id);
 
 #endif // _CLIENT
 
@@ -285,7 +289,7 @@ namespace meteor {
 
 #ifdef _CLIENT
 
-			if (m_my_connection.m_sequence < packet.m_sequence) {
+			if (m_my_connection.m_acknowledge < packet.m_sequence) {
 				if (m_my_connection.m_status == connection::status::CONNECTING || m_my_connection.m_status == connection::status::CONNECTED) {
 					m_my_connection.m_status = connection::status::CONNECTED;
 					m_my_connection.m_sequence = packet.m_sequence;
@@ -537,18 +541,42 @@ namespace meteor {
 					return;
 				}
 
-				for (const player& player : message.m_shot.m_players) {
-					for (int i = 0; i < MAX_PLAYERS; i++) {
-						if (m_game.m_players[i].m_id == player.m_id) {
-							m_game.m_players[i] = player;
+				std::vector<bool> message_player_assigned(MAX_PLAYERS, false);
+
+				for (int i = 0; i < MAX_PLAYERS; i++) {
+					if (m_game.m_players[i].m_id != 0) {
+						for (int j = 0; j < MAX_PLAYERS; j++) {
+							if (message.m_shot.m_players[j].m_id == m_game.m_players[i].m_id) {
+								m_game.m_players[i] = message.m_shot.m_players[j];
+								message_player_assigned[j] = true;
+								break;
+							}
 						}
 					}
 				}
 
-				for (const bomb& bomb : message.m_shot.m_bombs) {
-					for (int i = 0; i < MAX_PLAYERS; i++) {
-						if (m_game.m_bombs[i].m_id == bomb.m_id) {
-							m_game.m_bombs[i] = bomb;
+				for (int j = 0; j < MAX_PLAYERS; j++) {
+					if (!message_player_assigned[j] && message.m_shot.m_players[j].m_id != 0) {
+						for (int i = 0; i < MAX_PLAYERS; i++) {
+							if (m_game.m_players[i].m_id == 0) {
+								m_game.m_players[i] = message.m_shot.m_players[j];
+								message_player_assigned[j] = true;
+								break;
+							}
+						}
+					}
+				}
+
+				for (int i = 0; i < MAX_PLAYERS; i++) {
+					if (m_game.m_players[i].m_id == id) {
+						m_game.m_players[i].is_player_character = true;
+					}
+				}
+
+				for (int i = 0; i < MAX_PLAYERS; i++) {
+					for (int j = 0; j < MAX_PLAYERS; j++) {
+						if (m_game.m_bombs[i].m_id == message.m_shot.m_bombs[j].m_id == !(m_game.m_bombs[i].m_id == 0)) {
+							m_game.m_bombs[i] = message.m_shot.m_bombs[j];
 						}
 					}
 				}

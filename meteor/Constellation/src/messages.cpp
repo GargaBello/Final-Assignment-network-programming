@@ -92,7 +92,7 @@ namespace meteor
    }*/
 
 
-    template <typename T_from, typename T_to>
+    /*template <typename T_from, typename T_to>
     bool serialize(T_from& type, byte_stream_writer& stream)
     {
         bool success = true;
@@ -108,7 +108,7 @@ namespace meteor
         success &= stream.serialize(v);
         type = (T_from)v;
         return success;
-    }
+    }*/
 
 
     input_action_message::input_action_message(uint8 move_req, uint32 tick)
@@ -144,7 +144,7 @@ namespace meteor
    {
    }
 
-   //Taken directly from Theos genius
+   //Modified version of theos implementation
 
    template <typename T>
    bool serialize(player& player, T& stream) {
@@ -202,9 +202,7 @@ namespace meteor
            }
        }
 
-       /*for (uint8 tile : m_all_terrain) {
-           success &= stream.serialize(tile);
-       }*/
+       success &= stream.serialize(shot.m_status);
 
        return success;
    }
@@ -214,7 +212,6 @@ namespace meteor
    {
        bool success = true;
 
-       //success &= serialize<message_type, uint8>(message.m_type, stream);
        success &= stream.serialize(message.m_type);
        success &= stream.serialize(message.m_tick);
        success &= serialize(message.m_shot, stream);

@@ -82,8 +82,4 @@ namespace meteor {
 
 		Vector2 m_center_of_pos = { m_origin.x + 5, m_origin.y + 5 };
 	};
-
-	void create_bomb(uint8 id, Vector2 position);
-
-	void create_player(uint32 id);
 }

@@ -50,14 +50,6 @@ namespace meteor {
 			}
 		}
 
-		
-
 		return temp_id + 1;
-	}
-
-
-	void client_controller::update_clients_player(player player)
-	{
-
 	}
 }

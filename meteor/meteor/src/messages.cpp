@@ -212,6 +212,8 @@ namespace meteor
            }
        }
 
+       success &= stream.serialize(shot.m_status);
+
        /*for (uint8 tile : m_all_terrain) {
            success &= stream.serialize(tile);
        }*/
