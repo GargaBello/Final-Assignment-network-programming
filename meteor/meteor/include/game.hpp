@@ -394,6 +394,7 @@ namespace meteor {
 							for (int j = 0; j < MAX_PLAYERS; j++) {
 								if (m_players[i].m_id == m_bombs[j].m_id) {
 									m_bombs[j].m_position = m_players[i].m_position;
+									m_bombs[j].m_terrain_map_pos = m_players[i].m_terrain_map_pos;
 									m_bombs[j].m_hit = false;
 								}
 							}
@@ -422,7 +423,7 @@ namespace meteor {
 					if ((int)m_bombs[i].m_explosion_tick <= 0) {
 						//bomb will explode
 						if (!m_bombs[i].m_hit) {
-							bomb_explodes((int)m_bombs[i].m_position.x, (int)m_bombs[i].m_position.y);
+							bomb_explodes((int)m_bombs[i].m_terrain_map_pos.x, (int)m_bombs[i].m_terrain_map_pos.y);
 							m_bombs[i].m_cooldown = m_bombs[i].COOLDOWN_TICKS;
 							m_bombs[i].m_hit = true;
 						}
@@ -486,7 +487,7 @@ namespace meteor {
 			m_background.draw();
 
 			for (int i = 0; i < MAX_PLAYERS; i++) {
-				if (m_bombs[i].m_explosion_tick > 0 && !m_bombs[i].m_hit) {
+				if (m_bombs[i].m_explosion_tick > 0 && m_bombs[i].m_hit == false) {
 					DrawRectangle((int)m_bombs[i].m_position.x, (int)m_bombs[i].m_position.y, (int)m_bombs[i].RECTANGLE_SIDE_LENGTH, (int)m_bombs[i].RECTANGLE_SIDE_LENGTH, BLACK);
 				}
 			}
@@ -528,13 +529,12 @@ namespace meteor {
 		}
 
 		bool bomb_in_way(int x, int y) const {
-			bool bomb_in_way = true;
+			bool bomb_in_way = false;
 			for (int i = 0; i < MAX_PLAYERS; i++) {
-				if (x == (int)m_bombs[i].m_position.x && y == (int)m_bombs[i].m_position.y) {
-					bomb_in_way = true;
-				}
-				else {
-					bomb_in_way = false;
+				if ((int)m_bombs[i].m_hit == false) {
+					if (x == (int)m_bombs[i].m_position.x && y == (int)m_bombs[i].m_position.y) {
+						bomb_in_way = true;
+					}
 				}
 			}
 			return bomb_in_way;
@@ -551,6 +551,8 @@ namespace meteor {
 							break;
 						}
 					}
+
+					break;
 				}
 			}
 
@@ -564,6 +566,8 @@ namespace meteor {
 							break;
 						}
 					}
+
+					break;
 				}
 			}
 		}

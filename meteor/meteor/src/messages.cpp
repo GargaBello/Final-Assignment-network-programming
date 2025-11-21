@@ -167,6 +167,7 @@ namespace meteor
        success &= stream.serialize(bomb.m_explosion_tick);
        success &= stream.serialize(bomb.m_position.x);
        success &= stream.serialize(bomb.m_position.y);
+       success &= stream.serialize(bomb.m_hit);
 
        return success;
    }

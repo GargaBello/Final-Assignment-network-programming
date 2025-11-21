@@ -541,6 +541,23 @@ namespace meteor {
 					return;
 				}
 
+				auto it = std::find_if(m_game.m_queue.m_snapshots.begin(),
+					m_game.m_queue.m_snapshots.end(),
+					[&message](const snapshot& snap) {
+						for (int i = 0; i < MAX_PLAYERS; i++) {
+							if (snap.m_players[i].m_position.x != message.m_shot.m_players[i].m_position.x ||
+								snap.m_players[i].m_position.y != message.m_shot.m_players[i].m_position.y) {
+								return false;
+							}
+						}
+						return true;
+					});
+
+				if (it != m_game.m_queue.m_snapshots.end()) {
+					debug::info("Received duplicate snapshot, skipping update");
+					break;
+				}
+
 				std::vector<bool> message_player_assigned(MAX_PLAYERS, false);
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
