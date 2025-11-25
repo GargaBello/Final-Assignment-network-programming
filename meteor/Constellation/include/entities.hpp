@@ -10,7 +10,10 @@ namespace meteor {
 
 	struct entity {
 
-		Vector2 m_position = { 0,0 };
+		Vector2 
+			m_position = { 0,0 },
+			m_prev_position = { 0,0 },
+			m_next_position = { 0,0 };
 		Vector2 m_terrain_map_pos = { 0, 0 };
 		bool	m_hit = false;
 	};

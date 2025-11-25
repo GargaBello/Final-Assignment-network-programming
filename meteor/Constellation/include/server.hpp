@@ -14,7 +14,7 @@ namespace meteor {
 	struct server {
 		struct listener {
 			virtual void on_connect(uint32 id) = 0;
-			virtual void on_disconnect(uint32 id, bool timeout) = 0;
+			virtual void on_disconnect(uint32 id, bool timeout, disconnect_reason_type reason) = 0;
 			virtual void on_send(uint32 id, byte_stream_writer& writer) = 0;
 			virtual void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) = 0;
 		};
@@ -147,7 +147,7 @@ namespace meteor {
 			if ((current_time - conn.m_last_receive_time) >= timer) {
 				conn.m_status = connection::status::DISCONNECTED;
 				send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out");
-				m_listener->on_disconnect(conn.m_id, true);
+				m_listener->on_disconnect(conn.m_id, true, disconnect_reason_type::TIMED_OUT);
 			}
 		}
 
@@ -244,7 +244,7 @@ namespace meteor {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
 					m_clients[i].m_connection.m_status = connection::status::DISCONNECTING;
 					remove_disconnected_connections(m_clients[i].m_connection);
-					m_listener->on_disconnect(m_clients[i].m_connection.m_id, false);
+					m_listener->on_disconnect(m_clients[i].m_connection.m_id, false, disconnect_reason_type::DISCONNECTING);
 				}
 			}
 
@@ -254,7 +254,7 @@ namespace meteor {
 
 			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "I am disconnecting");
 
-			m_listener->on_disconnect(m_my_connection.m_id, false);
+			m_listener->on_disconnect(m_my_connection.m_id, false, disconnect_reason_type::DISCONNECTING);
 
 #endif // _CLIENT
 
@@ -440,7 +440,36 @@ namespace meteor {
 #endif // _CLIENT
 		}
 
-		void on_disconnect(uint32 id, bool timeout) {
+		void on_disconnect(uint32 id, bool timeout, disconnect_reason_type reason) {
+
+
+#ifdef _CLIENT
+
+
+			switch (reason)
+			{
+			case disconnect_reason_type::DISCONNECTING:
+				m_game.m_disconnect_text = "You are disconnecting";
+				m_game.m_disconnected = true;
+				break;
+			case disconnect_reason_type::TIMED_OUT:
+				m_game.m_disconnect_text = "You have been timed out by the server";
+				m_game.m_disconnected = true;
+				break;
+			case disconnect_reason_type::WRONG_MAGIC:
+				m_game.m_disconnect_text = "You have the wrong magic and need the right one to connect";
+				m_game.m_disconnected = true;
+				break;
+			case disconnect_reason_type::WRONG_VERSION:
+				m_game.m_disconnect_text = "You have the wrong version and need the right one to connect";
+				m_game.m_disconnected = true;
+				break;
+
+			default:
+				break;
+			}
+			 
+#endif // _CLIENT
 
 		}
 
@@ -541,6 +570,13 @@ namespace meteor {
 					return;
 				}
 
+				
+
+				//Wrong calculation i need to calculate the minus from the last receive time and get time when i get packages
+				//double rtt = m_server.m_my_connection.m_last_receive_time - m_game.m_rtt_time;
+				double rtt = GetTime() - m_server.m_my_connection.m_last_receive_time;
+				m_game.m_rtt_time = rtt;
+
 				auto it = std::find_if(m_game.m_queue.m_snapshots.begin(),
 					m_game.m_queue.m_snapshots.end(),
 					[&message](const snapshot& snap) {
@@ -553,36 +589,69 @@ namespace meteor {
 						return true;
 					});
 
+
+
 				if (it != m_game.m_queue.m_snapshots.end()) {
 					debug::info("Received duplicate snapshot, skipping update");
 					break;
 				}
 
+				if (m_game.m_queue.m_snapshots.size() > 0) {
+					snapshot prev_snap = *m_game.m_queue.m_snapshots.begin();
+				}
+
+				snapshot new_snap = message.m_shot;
+
 				std::vector<bool> message_player_assigned(MAX_PLAYERS, false);
+
+				//things to assign 
+				// id, hit, position, cooldown
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					if (m_game.m_players[i].m_id != 0) {
 						for (int j = 0; j < MAX_PLAYERS; j++) {
 							if (message.m_shot.m_players[j].m_id == m_game.m_players[i].m_id) {
-								m_game.m_players[i] = message.m_shot.m_players[j];
+
+								bool position_changed =
+									(m_game.m_players[i].m_position.x != message.m_shot.m_players[j].m_position.x) ||
+									(m_game.m_players[i].m_position.y != message.m_shot.m_players[j].m_position.y);
+
+								if (position_changed) {
+
+									m_game.m_players[i].m_prev_position = m_game.m_players[i].m_position;
+									m_game.m_players[i].m_position = message.m_shot.m_players[j].m_position;
+
+									m_game.m_last_update_time = GetTime();
+								}
+
+
+								m_game.m_players[i].m_id = message.m_shot.m_players[j].m_id;
+								m_game.m_players[i].m_hit = message.m_shot.m_players[j].m_hit;
+								m_game.m_players[i].m_cooldown = message.m_shot.m_players[j].m_cooldown;
+
+
+
 								message_player_assigned[j] = true;
 								break;
 							}
 						}
 					}
 				}
+
 
 				for (int j = 0; j < MAX_PLAYERS; j++) {
 					if (!message_player_assigned[j] && message.m_shot.m_players[j].m_id != 0) {
 						for (int i = 0; i < MAX_PLAYERS; i++) {
 							if (m_game.m_players[i].m_id == 0) {
 								m_game.m_players[i] = message.m_shot.m_players[j];
+								m_game.m_players[i].m_prev_position = message.m_shot.m_players[j].m_position;
 								message_player_assigned[j] = true;
 								break;
 							}
 						}
 					}
 				}
+
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					if (m_game.m_players[i].m_id == id) {
@@ -605,6 +674,8 @@ namespace meteor {
 				}
 
 				m_game.m_status = (game::status)message.m_shot.m_status;
+
+				
 				
 
 				break;

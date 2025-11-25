@@ -418,6 +418,7 @@ namespace meteor {
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 
+					
 					m_players[i].m_position = m_map.m_terrain_map[(int)m_players[i].m_terrain_map_pos.x][(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
 
 					if ((int)m_bombs[i].m_explosion_tick <= 0) {

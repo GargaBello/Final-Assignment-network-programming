@@ -514,6 +514,7 @@ namespace meteor {
 								for (int j = 0; j < MAX_PLAYERS; j++) {
 									if (m_game.m_players[j].m_id == id) {
 										m_game.m_players[j].m_action = (player::action)message.m_movement_request;
+										debug::info("Received input message");
 									}
 								}
 
