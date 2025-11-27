@@ -339,53 +339,62 @@ namespace meteor {
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					player::action action = m_players[i].m_action;
 
+					#ifdef _SERVER
+					m_players[i].m_action = player::action::STAND_STILL;
+					#endif // _SERVER
+
+
 					switch (action)
 					{
 					case player::action::MOVE_UP: {
 						if (m_map.tile_active((int)m_players[i].m_terrain_map_pos.x, (int)(m_players[i].m_terrain_map_pos.y - 1), m_map)) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x), (int)(m_players[i].m_terrain_map_pos.y - 1))) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.y -= 1;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_DOWN: {
 						if (m_map.tile_active((int)m_players[i].m_terrain_map_pos.x, (int)(m_players[i].m_terrain_map_pos.y + 1), m_map)) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x), (int)(m_players[i].m_terrain_map_pos.y + 1))) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.y += 1;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_RIGHT: {
 						if (m_map.tile_active((int)(m_players[i].m_terrain_map_pos.x + 1), (int)m_players[i].m_terrain_map_pos.y, m_map)) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x + 1), (int)m_players[i].m_terrain_map_pos.y)) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.x += 1;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_LEFT: {
 						if (m_map.tile_active((int)(m_players[i].m_terrain_map_pos.x - 1), (int)m_players[i].m_terrain_map_pos.y, m_map)) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x - 1), (int)m_players[i].m_terrain_map_pos.y)) {
-							m_players[i].m_action = player::action::STAND_STILL;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.x -= 1;
+							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}

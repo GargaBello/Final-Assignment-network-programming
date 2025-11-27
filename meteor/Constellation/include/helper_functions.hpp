@@ -35,8 +35,8 @@ namespace meteor {
     static bool out_of_bounds(int x, int y) {
         bool ofb = false;
 
-        int array_width = 6
-            , array_height = 6;
+        int array_width = 5
+            , array_height = 5;
 
         if (x > array_width || x < 0 || y > array_height || y < 0) {
             ofb = true;

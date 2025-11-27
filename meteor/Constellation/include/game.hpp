@@ -689,8 +689,16 @@ namespace meteor {
 
 		}
 
-		void reconciliation(player player) {
-			player_position_interpolation(player.m_prev_position, player.m_position, m_rtt_time);
+		void reconciliation(player& Clientplayer, player& Serverplayer) {
+			int distance_threshold = 2;
+
+			Vector2 sum = Clientplayer.m_terrain_map_pos - Serverplayer.m_terrain_map_pos;
+
+			if (abs(sum.x) > distance_threshold || abs(sum.y) > distance_threshold) {
+				Clientplayer.m_terrain_map_pos = Serverplayer.m_terrain_map_pos;
+				Clientplayer.m_position = Serverplayer.m_position;
+				Clientplayer.m_prev_action = Serverplayer.m_prev_action;
+			}
 		}
 
 		player							  m_players[MAX_PLAYERS] = {};

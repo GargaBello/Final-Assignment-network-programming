@@ -63,6 +63,7 @@ namespace meteor {
 
 		if (out_of_bounds(x, y)) {
 			active = true;
+			return active;
 		}
 		else if (map.m_terrain_map[x][y].m_hit) {
 			active = false;

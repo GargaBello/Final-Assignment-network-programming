@@ -155,6 +155,8 @@ namespace meteor
        success &= stream.serialize(player.m_position.x);
        success &= stream.serialize(player.m_position.y);
        success &= stream.serialize(player.m_cooldown);
+       success &= stream.serialize(player.m_terrain_map_pos.x);
+       success &= stream.serialize(player.m_terrain_map_pos.y);
 
        return success;
    }
