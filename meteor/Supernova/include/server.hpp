@@ -109,7 +109,7 @@ namespace meteor {
 
 
 #ifdef _CLIENT
-			m_local_endpoint = { m_local_address, 54322 };
+			m_local_endpoint = { m_local_address, 54323 };
 #endif // _CLIENT
 
 
@@ -125,6 +125,8 @@ namespace meteor {
 
 			m_my_connection.m_endpoint = SERVER_ENDPOINT;
 			m_my_connection.m_id = 0;
+
+			//send_connect(m_my_connection, m_my_connection.m_id);
 
 #endif // _CLIENT
 
@@ -617,27 +619,21 @@ namespace meteor {
 						for (int j = 0; j < MAX_PLAYERS; j++) {
 							if (message.m_shot.m_players[j].m_id == m_game.m_players[i].m_id) {
 
-								bool player_char_predicted_move = false;
-
 								bool position_changed =
 									(m_game.m_players[i].m_position.x != message.m_shot.m_players[j].m_position.x) ||
 									(m_game.m_players[i].m_position.y != message.m_shot.m_players[j].m_position.y);
 
-								if (m_game.m_players[i].m_id == m_server.m_my_connection.m_id 
-									&& !(m_game.m_players[i].m_predict_action == player::action::STAND_STILL) 
-									&& !(m_game.m_players[i].m_predict_action == player::action::INVALID)) {
-									player_char_predicted_move = true;
-								}
-
-								if (position_changed && !(player_char_predicted_move)) {
+								
+								if (position_changed && !m_game.m_players[i].is_player_character) {
 
 									m_game.m_players[i].m_prev_position = m_game.m_players[i].m_position;
 									m_game.m_players[i].m_position = message.m_shot.m_players[j].m_position;
 
 									m_game.m_time_since_last_update = GetTime();
 								}
-
-								m_game.reconciliation(m_game.m_players[i], message.m_shot.m_players[j]);
+								else if (m_game.m_players[i].is_player_character) {
+									m_game.reconciliation(m_game.m_players[i], message.m_shot.m_players[j]);
+								}
 
 								m_game.m_players[i].m_id = message.m_shot.m_players[j].m_id;
 								m_game.m_players[i].m_hit = message.m_shot.m_players[j].m_hit;

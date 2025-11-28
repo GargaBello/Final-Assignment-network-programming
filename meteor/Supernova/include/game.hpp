@@ -4,8 +4,10 @@
 
 #include "network.hpp"
 #include "raylib.h"
+#include "raymath.h"
 #include "helper_functions.hpp"
 #include "client_controller.hpp"
+#include <string>
 
 namespace meteor {
 
@@ -242,34 +244,12 @@ namespace meteor {
 			if (m_status == game::status::PRE_GAME) {
 				m_tick++;
 
-
 				#ifdef _SERVER
 
 				for (int i = 0; i < MAX_CLIENTS; i++) {
 					if (m_clients[i].m_connection.m_id > 0) {
 						m_players[i].m_id = m_clients[i].m_connection.m_id;
-						m_bombs[i].m_id = m_clients[i].m_connection.m_id;
 						m_players[i].m_hit = false;
-
-						// Reset position to spawn point
-						switch (i) {
-						case 0:
-							m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_ONE_START_INDEX.x][(int)m_map.PLAYER_ONE_START_INDEX.y].m_center_of_pos;
-							m_players[i].m_terrain_map_pos = m_map.PLAYER_ONE_START_INDEX;
-							break;
-						case 1:
-							m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_TWO_START_INDEX.x][(int)m_map.PLAYER_TWO_START_INDEX.y].m_center_of_pos;
-							m_players[i].m_terrain_map_pos = m_map.PLAYER_TWO_START_INDEX;
-							break;
-						case 2:
-							m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_THREE_START_INDEX.x][(int)m_map.PLAYER_THREE_START_INDEX.y].m_center_of_pos;
-							m_players[i].m_terrain_map_pos = m_map.PLAYER_THREE_START_INDEX;
-							break;
-						case 3:
-							m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_FOUR_START_INDEX.x][(int)m_map.PLAYER_FOUR_START_INDEX.y].m_center_of_pos;
-							m_players[i].m_terrain_map_pos = m_map.PLAYER_FOUR_START_INDEX;
-							break;
-						}
 					}
 				}
 
@@ -294,29 +274,36 @@ namespace meteor {
 					m_tick = 0;
 				}
 
+
+				debug::info("Tick check");
+
 				#endif // _SERVER
 			}
 			else if (m_status == game::status::IN_GAME) {
 				m_tick++;
+				double current_time = GetTime();
 
 
 				#ifdef _CLIENT
 
 				for (int p = 0; p < MAX_PLAYERS; p++) {
 					if (m_players[p].is_player_character == true) {
-						if (IsKeyDown(KEY_W)) {
+
+						//m_players[p].m_prev_position = m_players[p].m_position;
+
+						if (IsKeyPressed(KEY_W)) {
 							m_players[p].m_action = player::action::MOVE_UP;
 							m_players[p].m_predict_action = player::action::MOVE_UP;
 						}
-						else if (IsKeyDown(KEY_S)) {
+						else if (IsKeyPressed(KEY_S)) {
 							m_players[p].m_action = player::action::MOVE_DOWN;
 							m_players[p].m_predict_action = player::action::MOVE_DOWN;
 						}
-						else if (IsKeyDown(KEY_A)) {
+						else if (IsKeyPressed(KEY_D)) {
 							m_players[p].m_action = player::action::MOVE_RIGHT;
 							m_players[p].m_predict_action = player::action::MOVE_RIGHT;
 						}
-						else if (IsKeyDown(KEY_D)) {
+						else if (IsKeyPressed(KEY_A)) {
 							m_players[p].m_action = player::action::MOVE_LEFT;
 							m_players[p].m_predict_action = player::action::MOVE_LEFT;
 						}
@@ -331,72 +318,88 @@ namespace meteor {
 				for (int b = 0; b < MAX_PLAYERS; b++) {
 					if (m_bombs[b].m_hit == false) {
 						m_bombs[b].m_explosion_tick--;
+					}
 
-						if (m_bombs[b].m_cooldown >= 0) {
-							m_bombs[b].m_cooldown--;
-						}
+					if (m_bombs[b].m_cooldown >= 0) {
+						m_bombs[b].m_cooldown--;
 					}
 				}
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					player::action action = m_players[i].m_action;
 
-					#ifdef _SERVER
-					m_players[i].m_action = player::action::STAND_STILL;
-					#endif // _SERVER
+					//m_players[i].m_prev_position = m_players[i].m_position;
 
+					bool player_moved = false;  
 
 					switch (action)
 					{
 					case player::action::MOVE_UP: {
 						if (m_map.tile_active((int)m_players[i].m_terrain_map_pos.x, (int)(m_players[i].m_terrain_map_pos.y - 1), m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x), (int)(m_players[i].m_terrain_map_pos.y - 1))) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.y -= 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_position = m_map.m_terrain_map
+								[(int)m_players[i].m_terrain_map_pos.x]
+								[(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
+							player_moved = true;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_DOWN: {
 						if (m_map.tile_active((int)m_players[i].m_terrain_map_pos.x, (int)(m_players[i].m_terrain_map_pos.y + 1), m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x), (int)(m_players[i].m_terrain_map_pos.y + 1))) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.y += 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_position = m_map.m_terrain_map
+								[(int)m_players[i].m_terrain_map_pos.x]
+								[(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
+							player_moved = true;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_RIGHT: {
 						if (m_map.tile_active((int)(m_players[i].m_terrain_map_pos.x + 1), (int)m_players[i].m_terrain_map_pos.y, m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x + 1), (int)m_players[i].m_terrain_map_pos.y)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.x += 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_position = m_map.m_terrain_map
+								[(int)m_players[i].m_terrain_map_pos.x]
+								[(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
+							player_moved = true;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_LEFT: {
 						if (m_map.tile_active((int)(m_players[i].m_terrain_map_pos.x - 1), (int)m_players[i].m_terrain_map_pos.y, m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x - 1), (int)m_players[i].m_terrain_map_pos.y)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.x -= 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
+							m_players[i].m_position = m_map.m_terrain_map
+								[(int)m_players[i].m_terrain_map_pos.x]
+								[(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
+							player_moved = true;
+							m_players[i].m_action = player::action::STAND_STILL;
+
 						}
 						break;
 					}
@@ -407,6 +410,7 @@ namespace meteor {
 									m_bombs[j].m_position = m_players[i].m_position;
 									m_bombs[j].m_terrain_map_pos = m_players[i].m_terrain_map_pos;
 									m_bombs[j].m_hit = false;
+									m_players[i].m_action = player::action::STAND_STILL;
 								}
 							}
 						}
@@ -422,15 +426,20 @@ namespace meteor {
 						break;
 					}
 					}
+
+					/*if (player_moved) {
+						m_last_update_time = current_time;
+					}*/
 				}
+				
 
-
+				
+				//m_time_since_last_update = current_time - m_last_update_time;
 
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 
 					
-					m_players[i].m_position = m_map.m_terrain_map[(int)m_players[i].m_terrain_map_pos.x][(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
 
 					if ((int)m_bombs[i].m_explosion_tick <= 0) {
 						//bomb will explode
@@ -461,7 +470,7 @@ namespace meteor {
 					shot.m_bombs[i] = m_bombs[i];
 				}
 
-				
+
 				shot.m_tick = m_tick;
 				shot.m_status = (uint8)m_status;
 				m_snapshot = shot;
@@ -472,6 +481,7 @@ namespace meteor {
 					m_queue.m_snapshots.pop_back();
 				}
 
+				
 
 				/*	todo make function that checks the rows a bomb was on when exploding and apply damage to whatever the explosion hit
 				*	make client
@@ -486,13 +496,32 @@ namespace meteor {
 				*
 				*	overhaul snapshots
 				* 
-				* when client receives it compares it to all the snapshots in its memory and doesn't change anything if the incoming snapshot is the same as a snapshot inside the queue, 
-				i mean if the positions of the entities are the same or if they are hit, it should change the cooldowns and explosion ticks and such every receive probably
+				*	Diconnect players when they won
+				*	Display disconnect messages on screen for client
+				* 
+				*  Only interpolate the remote players and make the time when the client receives the payload the last update time 
 				*/
-
-
-				draw();
+				
 			}
+			else if (m_status == game::status::POST_GAME) {
+
+				for (int i = 0; i < MAX_PLAYERS; i++) {
+
+
+					m_players[i].m_hit = true;
+					m_bombs[i].m_hit = true;
+
+					
+				}
+
+				for (int i = 0; i < m_map.ARRAY_WIDTH; i++) {
+					for (int j = 0; j < m_map.ARRAY_HEIGHT; j++) {
+						m_map.m_terrain_map[i][j].m_hit = true;
+					}
+				}
+			}
+
+			draw();
 		}
 
 		void draw() {
@@ -506,7 +535,33 @@ namespace meteor {
 
 			for (int i = 0; i < MAX_PLAYERS; i++) {
 				if (m_players[i].m_hit == false) {
-					DrawRectangle((int)m_players[i].m_position.x, (int)m_players[i].m_position.y, (int)m_players[i].RECTANGLE_SIDE_LENGTH, (int)m_players[i].RECTANGLE_SIDE_LENGTH, RED);
+					double current_time = GetTime();
+					double time_since_update = current_time - m_time_since_last_update;
+
+					double interpolation_period = 10 / (double)TICK_RATE;
+
+					double lerp_fraction = (float)time_since_update / interpolation_period;
+					lerp_fraction = Clamp((float)lerp_fraction, 0.0f, 1.0f);
+
+					if (m_players[i].is_player_character) {
+						m_players[i].m_prev_position = m_players[i].m_position;
+					}
+
+
+					Vector2 render_pos = Vector2Lerp(
+						m_players[i].m_prev_position,
+						m_players[i].m_position,
+						(float)lerp_fraction
+					);
+
+
+					DrawRectangle(
+						(int)render_pos.x,
+						(int)render_pos.y,
+						(int)m_players[i].RECTANGLE_SIDE_LENGTH,
+						(int)m_players[i].RECTANGLE_SIDE_LENGTH,
+						RED
+					);
 				}
 			}
 
@@ -516,6 +571,16 @@ namespace meteor {
 						DrawRectangleRec(m_map.m_terrain_map[i][j].m_size_rec, DARKBROWN);
 					}
 				}
+			}
+
+			std::string text = "Round trip time: " + std::to_string(m_rtt_time);
+			DrawText(text.c_str(), m_background.BACKGROUND_WIDTH - 200, m_background.BACKGROUND_HEIGHT - 575, 30, BLACK);
+
+			if (m_disconnected) {
+				int half_of_window_width = 600,
+					half_of_window_height = 350;
+
+				DrawText(m_disconnect_text.c_str(), half_of_window_width, half_of_window_height, 50, BLACK);
 			}
 
 		}
@@ -563,6 +628,9 @@ namespace meteor {
 
 				if (m_map.tile_active(i, y, m_map)) {
 					m_map.m_terrain_map[i][y].m_hit = true;
+
+
+
 					break;
 				}
 			}
@@ -577,6 +645,9 @@ namespace meteor {
 
 				if (m_map.tile_active(i, y, m_map)) {
 					m_map.m_terrain_map[i][y].m_hit = true;
+
+
+
 					break;
 				}
 			}
@@ -591,6 +662,9 @@ namespace meteor {
 
 				if (m_map.tile_active(x, j, m_map)) {
 					m_map.m_terrain_map[x][j].m_hit = true;
+
+
+
 					break;
 				}
 			}
@@ -605,20 +679,71 @@ namespace meteor {
 
 				if (m_map.tile_active(x, j, m_map)) {
 					m_map.m_terrain_map[x][j].m_hit = true;
+
+
+
 					break;
 				}
 			}
 		}
 
-		player          m_players[MAX_PLAYERS] = {};
-		bomb		    m_bombs[MAX_PLAYERS] = {};
-		background	    m_background;
-		terrain_map     m_map;
-		snapshot		m_snapshot;
-		snapshot_queue  m_queue;
+		Vector2 player_position_interpolation(Vector2 prev_pos, Vector2 pos, double rtt) {
+			uint32 m_tick_when_interpolated = m_tick + (TICK_RATE * 2);
+
+			//if (m_tick_when_interpolated - m_tick <= 0) { return; }
+
+			for (int i = 1; i < (int)m_tick_when_interpolated; i++) {
+				const float fraction = (float)i / (float)(m_tick_when_interpolated);
+
+			}
+
+			Vector2 zero = {};
+
+			return zero;
+
+		}
+
+		bool go_to_post_game() {
+			int dead_player_counter = 0;
+			for (int i = 0; i < MAX_PLAYERS; i++) {
+
+				if (m_players[i].m_hit) dead_player_counter++;
+			}
+
+			if (dead_player_counter >= 3) {
+				m_status = status::POST_GAME;
+			}
+
+		}
+
+		void reconciliation(player& Clientplayer, player& Serverplayer) {
+			int distance_threshold = 2;
+
+			Vector2 sum = Clientplayer.m_terrain_map_pos - Serverplayer.m_terrain_map_pos;
+
+			if (abs(sum.x) > distance_threshold || abs(sum.y) > distance_threshold) {
+				Clientplayer.m_terrain_map_pos = Serverplayer.m_terrain_map_pos;
+				Clientplayer.m_position = Serverplayer.m_position;
+				Clientplayer.m_prev_action = Serverplayer.m_prev_action;
+			}
+		}
+
+		player							  m_players[MAX_PLAYERS] = {};
+		bomb							  m_bombs[MAX_PLAYERS] = {};
+		background						  m_background;
+		terrain_map						  m_map;
+		snapshot						  m_snapshot;
+		snapshot_queue					  m_queue;
 
 		uint32                            m_tick = 0;
 		uint32						      m_thirty_tick_seconds = 1800;
 		status                            m_status = status::INVALID;
+
+		double                            m_rtt_time = 0;
+		double                            m_last_update_time = 0.0;
+		double                            m_time_since_last_update = 0.0;
+
+		std::string                       m_disconnect_text = "";
+		bool                              m_disconnected = false;
 	};
 }

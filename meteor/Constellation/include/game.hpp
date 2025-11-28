@@ -235,7 +235,7 @@ namespace meteor {
 				m_players[i].m_hit = true;
 				m_bombs[i] = default_bomb;
 
-				switch (i)
+				/*switch (i)
 				{
 				case 0:
 					m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_ONE_START_INDEX.x][(int)m_map.PLAYER_ONE_START_INDEX.y].m_center_of_pos;
@@ -251,7 +251,7 @@ namespace meteor {
 					break;
 				default:
 					break;
-				}
+				}*/
 			}
 
 			m_status = game::status::PRE_GAME;
@@ -307,7 +307,7 @@ namespace meteor {
 				for (int p = 0; p < MAX_PLAYERS; p++) {
 					if (m_players[p].is_player_character == true) {
 
-						m_players[p].m_prev_position = m_players[p].m_position;
+						//m_players[p].m_prev_position = m_players[p].m_position;
 
 						if (IsKeyPressed(KEY_W)) {
 							m_players[p].m_action = player::action::MOVE_UP;
@@ -346,7 +346,7 @@ namespace meteor {
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					player::action action = m_players[i].m_action;
 
-					m_players[i].m_prev_position = m_players[i].m_position;
+					//m_players[i].m_prev_position = m_players[i].m_position;
 
 					bool player_moved = false;  
 
@@ -445,14 +445,14 @@ namespace meteor {
 					}
 					}
 
-					if (player_moved) {
+					/*if (player_moved) {
 						m_last_update_time = current_time;
-					}
+					}*/
 				}
 				
 
 				
-				m_time_since_last_update = current_time - m_last_update_time;
+				//m_time_since_last_update = current_time - m_last_update_time;
 
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -516,6 +516,8 @@ namespace meteor {
 				* 
 				*	Diconnect players when they won
 				*	Display disconnect messages on screen for client
+				* 
+				*  Only interpolate the remote players and make the time when the client receives the payload the last update time 
 				*/
 				
 			}
@@ -551,12 +553,17 @@ namespace meteor {
 
 			for (int i = 0; i < MAX_PLAYERS; i++) {
 				if (m_players[i].m_hit == false) {
-					//DrawRectangle((int)m_players[i].m_position.x, (int)m_players[i].m_position.y, (int)m_players[i].RECTANGLE_SIDE_LENGTH, (int)m_players[i].RECTANGLE_SIDE_LENGTH, RED);
-					double interpolation_duration = 2.0;
-					double tick_duration = 1 / (double)TICK_RATE;
-					double extended_duration = tick_duration * 10.0;
-					double lerp_fraction = m_time_since_last_update / interpolation_duration;
+					double current_time = GetTime();
+					double time_since_update = current_time - m_time_since_last_update;
+
+					double interpolation_period = 10 / (double)TICK_RATE;
+
+					double lerp_fraction = (float)time_since_update / interpolation_period;
 					lerp_fraction = Clamp((float)lerp_fraction, 0.0f, 1.0f);
+
+					if (m_players[i].is_player_character) {
+						m_players[i].m_prev_position = m_players[i].m_position;
+					}
 
 					
 					Vector2 render_pos = Vector2Lerp(
@@ -620,7 +627,7 @@ namespace meteor {
 			bool bomb_in_way = false;
 			for (int i = 0; i < MAX_PLAYERS; i++) {
 				if ((int)m_bombs[i].m_hit == false) {
-					if (x == (int)m_bombs[i].m_position.x && y == (int)m_bombs[i].m_position.y) {
+					if (x == (int)m_bombs[i].m_terrain_map_pos.x && y == (int)m_bombs[i].m_terrain_map_pos.y) {
 						bomb_in_way = true;
 					}
 				}
@@ -630,30 +637,68 @@ namespace meteor {
 
 		void bomb_explodes(int x, int y) {
 			for (int i = x; i < m_map.ARRAY_WIDTH; i++) {
+				for (int k = 0; k < MAX_PLAYERS; k++) {
+					if ((int)m_players[k].m_terrain_map_pos.x == i && (int)m_players[k].m_terrain_map_pos.y == y) {
+						m_players[k].m_hit = true;
+
+					}
+				}
+
 				if (m_map.tile_active(i, y, m_map)) {
 					m_map.m_terrain_map[i][y].m_hit = true;
 
-					for (int k = 0; k < MAX_PLAYERS; k++) {
-						if ((int)m_players[k].m_position.x == i && (int)m_players[k].m_position.y == y) {
-							m_players[k].m_hit = true;
-							break;
-						}
+
+
+					break;
+				}
+			}
+
+			for (int i = x; i > 0; i--) {
+				for (int k = 0; k < MAX_PLAYERS; k++) {
+					if ((int)m_players[k].m_terrain_map_pos.x == i && (int)m_players[k].m_terrain_map_pos.y == y) {
+						m_players[k].m_hit = true;
+
 					}
+				}
+
+				if (m_map.tile_active(i, y, m_map)) {
+					m_map.m_terrain_map[i][y].m_hit = true;
+
+
 
 					break;
 				}
 			}
 
 			for (int j = y; j < m_map.ARRAY_HEIGHT; j++) {
+				for (int o = 0; o < MAX_PLAYERS; o++) {
+					if ((int)m_players[o].m_terrain_map_pos.x == x && (int)m_players[o].m_terrain_map_pos.y == j) {
+						m_players[o].m_hit = true;
+
+					}
+				}
+
 				if (m_map.tile_active(x, j, m_map)) {
 					m_map.m_terrain_map[x][j].m_hit = true;
 
-					for (int o = 0; o < MAX_PLAYERS; o++) {
-						if ((int)m_players[o].m_position.x == x && (int)m_players[o].m_position.y == j) {
-							m_players[o].m_hit = true;
-							break;
-						}
+
+
+					break;
+				}
+			}
+
+			for (int j = y; j > 0; j--) {
+				for (int o = 0; o < MAX_PLAYERS; o++) {
+					if ((int)m_players[o].m_terrain_map_pos.x == x && (int)m_players[o].m_terrain_map_pos.y == j) {
+						m_players[o].m_hit = true;
+
 					}
+				}
+
+				if (m_map.tile_active(x, j, m_map)) {
+					m_map.m_terrain_map[x][j].m_hit = true;
+
+
 
 					break;
 				}

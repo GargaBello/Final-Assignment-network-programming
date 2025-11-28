@@ -35,7 +35,7 @@ namespace meteor {
 				byte_stream stream;
 				ip_endpoint endpoint;
 				if (!m_socket.receive_from(endpoint, stream)) {
-					debug::error("Unable to receive stream");
+					debug::info("Unable to receive stream");
 					break;
 				}
 

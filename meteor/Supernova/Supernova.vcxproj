@@ -18,6 +18,35 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\client_controller.cpp" />
+    <ClCompile Include="src\connection.cpp" />
+    <ClCompile Include="src\entities.cpp" />
+    <ClCompile Include="src\game.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\messages.cpp" />
+    <ClCompile Include="src\network.cpp" />
+    <ClCompile Include="src\network_layer.cpp" />
+    <ClCompile Include="src\protocol.cpp" />
+    <ClCompile Include="src\snapshot.cpp" />
+    <ClCompile Include="src\timer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\client_controller.hpp" />
+    <ClInclude Include="include\connection.hpp" />
+    <ClInclude Include="include\entities.hpp" />
+    <ClInclude Include="include\entity_controllers.hpp" />
+    <ClInclude Include="include\game.hpp" />
+    <ClInclude Include="include\helper_functions.hpp" />
+    <ClInclude Include="include\messages.hpp" />
+    <ClInclude Include="include\network.hpp" />
+    <ClInclude Include="include\network_layer.hpp" />
+    <ClInclude Include="include\protocol.hpp" />
+    <ClInclude Include="include\render.hpp" />
+    <ClInclude Include="include\server.hpp" />
+    <ClInclude Include="include\snapshot.hpp" />
+    <ClInclude Include="include\timer.hpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -114,11 +143,13 @@
       <AdditionalIncludeDirectories>include;..\vendor\raylib\include;..\meteor\include;..\meteor\src</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>4100;4189;4505;</DisableSpecificWarnings>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\vendor\raylib\lib\;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>ws2_32.lib;iphlpapi.lib;raylib.lib;winmm.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,19 +166,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\meteor\src\client_controller.cpp" />
-    <ClCompile Include="..\meteor\src\connection.cpp" />
-    <ClCompile Include="..\meteor\src\entities.cpp" />
-    <ClCompile Include="..\meteor\src\game.cpp" />
-    <ClCompile Include="..\meteor\src\messages.cpp" />
-    <ClCompile Include="..\meteor\src\network.cpp" />
-    <ClCompile Include="..\meteor\src\network_layer.cpp" />
-    <ClCompile Include="..\meteor\src\protocol.cpp" />
-    <ClCompile Include="..\meteor\src\snapshot.cpp" />
-    <ClCompile Include="..\meteor\src\timer.cpp" />
-    <ClCompile Include="src\main.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

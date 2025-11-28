@@ -58,7 +58,7 @@ namespace meteor {
 
 		float RECTANGLE_SIDE_LENGTH = 80;
 
-		static constexpr double FUSE_TIME = 3.0;
+		static constexpr double FUSE_TIME = 6.0;
 		static constexpr uint32 FUSE_TICKS = (uint32)(FUSE_TIME * (double)TICK_RATE);
 		static constexpr uint32 COOLDOWN_TICKS = (uint32)(1.0 * (double)TICK_RATE);
 
