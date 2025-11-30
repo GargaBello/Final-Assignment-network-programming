@@ -25,11 +25,6 @@ namespace meteor {
 		{
 		}
 
-		void update() {
-			receive();
-			perform_timeout_check(m_my_connection);
-			if (!m_listener->timeout_check()) { transmit(); }
-		}
 
 		void receive() {
 			int32 counter = 10;
@@ -64,8 +59,6 @@ namespace meteor {
 		}
 
 		void transmit() {
-			// send all the packages at a fixed rate
-
 			if (timer_check(m_prev_time)) {
 #ifdef _SERVER
 
@@ -79,63 +72,39 @@ namespace meteor {
 					}
 				}
 #endif // _SERVER
-
 #ifdef _CLIENT
-
 				if (m_my_connection.m_status == connection::status::CONNECTING || m_my_connection.m_status == connection::status::CONNECTED) {
 					m_my_connection.m_sequence++;
 
 					send_payload(m_my_connection);
-
 				}
 
 				if (m_my_connection.m_status == connection::status::DISCONNECTED || m_my_connection.m_status == connection::status::DISCONNECTING) {
 					send_connect(m_my_connection, m_my_connection.m_id);
 				}
-
 #endif // _CLIENT
-
 			}
 		}
-
-		//bool init(const ip_endpoint& endpoint) 
 		bool init() {
-
-
 			network::query_local_addresses(m_local_addresses);
 			m_local_address = m_local_addresses[0];
-
 #ifdef _SERVER
 			m_local_endpoint = { m_local_address, 54321 };
 #endif // _SERVER
-
-
 #ifdef _CLIENT
 			m_local_endpoint = { m_local_address, 54324 };
 #endif // _CLIENT
-
-
 			if (!m_socket.open_and_bind(m_local_endpoint)) {
 				debug::info("Could not bind socket");
 				return false;
 			}
-
-
-
-
 #ifdef _CLIENT
-
 			m_my_connection.m_endpoint = SERVER_ENDPOINT;
 			m_my_connection.m_id = 0;
 			m_my_connection.m_last_receive_time = GetTime();
 
-			//send_connect(m_my_connection, m_my_connection.m_id);
-
 #endif // _CLIENT
-
 			return true;
-
-
 		}
 
 
@@ -167,15 +136,6 @@ namespace meteor {
 					m_clients[i].m_connection = default_connection;
 				}
 			}
-		}
-
-		bool contains(const ip_endpoint& endpoint) const {
-			for (const auto& conn : m_connections) {
-				if (conn.m_endpoint == endpoint) {
-					return true;
-				}
-			}
-			return false;
 		}
 
 		void handle_connect_packet(const ip_endpoint& endpoint, byte_stream_reader& reader) {
@@ -230,13 +190,11 @@ namespace meteor {
 			m_my_connection.m_status = connection::status::CONNECTING;
 			m_my_connection.m_id = packet.m_id;
 
-
 			m_listener->on_connect(m_my_connection.m_id);
 #endif // _CLIENT
 		}
 
 		void handle_disconnect_packet(const ip_endpoint& endpoint, byte_stream_reader& reader) {
-
 			disconnect_packet packet;
 			if (!packet.read(reader)) {
 				debug::error("Unable to read disconnect packet");
@@ -255,17 +213,10 @@ namespace meteor {
 					m_listener->on_disconnect(m_clients[i].m_connection.m_id, false, disconnect_reason_type::DISCONNECTING);
 				}
 			}
-
 #endif // _SERVER
-
 #ifdef _CLIENT
-
-			//send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "I am disconnecting");
-
 			m_listener->on_disconnect(m_my_connection.m_id, false, (disconnect_reason_type)packet.m_reason);
-
 #endif // _CLIENT
-
 		}
 
 		void handle_payload_packet(const ip_endpoint& endpoint, byte_stream_reader& reader) {
@@ -278,7 +229,6 @@ namespace meteor {
 			debug::info("Received payload");
 
 #ifdef _SERVER
-
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
 					if (m_clients[i].m_connection.m_status == connection::status::CONNECTING || m_clients[i].m_connection.m_status == connection::status::CONNECTED) {
@@ -291,10 +241,7 @@ namespace meteor {
 					}
 				}
 			}
-
-
 #endif // _SERVER
-
 #ifdef _CLIENT
 
 			if (m_my_connection.m_acknowledge < packet.m_sequence) {
@@ -307,9 +254,7 @@ namespace meteor {
 					m_listener->on_receive(m_my_connection.m_id, packet.m_sequence, reader);
 				}
 			}
-
 #endif // _CLIENT
-
 		}
 
 		bool send_connect(connection& conn, uint32 id) {
@@ -349,7 +294,6 @@ namespace meteor {
 
 			m_listener->on_send(conn.m_id, writer);
 
-
 			if (!m_socket.send_to(conn.m_endpoint, stream)) {
 				debug::error("Could not send payload to: %d.%d.%.d.%d",
 					conn.m_endpoint.address().a(),
@@ -358,12 +302,9 @@ namespace meteor {
 					conn.m_endpoint.address().d()
 				);
 			}
-
 #ifdef _CLIENT
 			conn.m_last_send_time = GetTime();
 #endif // _CLIENT
-
-
 			debug::info("Sent Payload");
 
 			return true;
@@ -411,13 +352,10 @@ namespace meteor {
 		std::vector<ip_address> m_local_addresses;
 
 #ifdef _CLIENT
-
 		const uint16 PORT = 54321;
 		const ip_endpoint SERVER_ENDPOINT = { ip_address(192, 168, 1, 53), PORT };
 		connection m_my_connection;
-
 #endif // _CLIENT
-
 	};
 
 	struct application : server::listener {
@@ -449,25 +387,18 @@ namespace meteor {
 		}
 
 		void on_connect(uint32 id) {
-
 #ifdef _CLIENT
-
 			for (int i = 0; i < MAX_PLAYERS; i++) {
 				if (m_game.m_players[i].m_id == id) {
 					m_game.m_players[i].is_player_character = true;
 					m_game.m_bombs[i].m_id = id;
 				}
 			}
-
 #endif // _CLIENT
 		}
 
 		void on_disconnect(uint32 id, bool timeout, disconnect_reason_type reason) {
-
-
 #ifdef _CLIENT
-
-
 			switch (reason)
 			{
 			case disconnect_reason_type::DISCONNECTING:
@@ -493,9 +424,7 @@ namespace meteor {
 			default:
 				break;
 			}
-			 
 #endif // _CLIENT
-
 		}
 
 		void on_send(uint32 id, byte_stream_writer& writer) {
@@ -530,7 +459,7 @@ namespace meteor {
 			for (const player& player : m_game.m_players) {
 				if (m_server.m_my_connection.m_id == player.m_id) {
 					message.m_movement_request = (uint8)player.m_predict_action;
-					
+
 				}
 			}
 
@@ -552,8 +481,6 @@ namespace meteor {
 
 		void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) {
 #ifdef _SERVER
-
-
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_id == id) {
 					if (m_clients[i].m_connection.m_sequence < sequence) {
@@ -602,10 +529,6 @@ namespace meteor {
 					return;
 				}
 
-				
-
-				//Wrong calculation i need to calculate the minus from the last receive time and get time when i get packages
-				//double rtt = m_server.m_my_connection.m_last_receive_time - m_game.m_rtt_time;
 				double rtt = GetTime() - m_server.m_my_connection.m_last_send_time;
 				m_game.m_rtt_time = rtt;
 
@@ -628,11 +551,8 @@ namespace meteor {
 								}
 							}
 						}
-						
 						return true;
 					});
-
-
 
 				if (it != m_game.m_queue.m_snapshots.end()) {
 					debug::info("Received duplicate snapshot, skipping update");
@@ -647,9 +567,6 @@ namespace meteor {
 
 				std::vector<bool> message_player_assigned(MAX_PLAYERS, false);
 
-				//things to assign 
-				// id, hit, position, cooldown
-
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					if (m_game.m_players[i].m_id != 0) {
 						for (int j = 0; j < MAX_PLAYERS; j++) {
@@ -659,7 +576,7 @@ namespace meteor {
 									(m_game.m_players[i].m_position.x != message.m_shot.m_players[j].m_position.x) ||
 									(m_game.m_players[i].m_position.y != message.m_shot.m_players[j].m_position.y);
 
-								
+
 								if (position_changed && !m_game.m_players[i].is_player_character) {
 
 									m_game.m_players[i].m_prev_position = m_game.m_players[i].m_position;
@@ -684,7 +601,6 @@ namespace meteor {
 					}
 				}
 
-
 				for (int j = 0; j < MAX_PLAYERS; j++) {
 					if (!message_player_assigned[j] && message.m_shot.m_players[j].m_id != 0) {
 						for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -707,7 +623,6 @@ namespace meteor {
 
 				std::vector<bool> message_bomb_assigned(MAX_PLAYERS, false);
 
-				// Update existing bombs
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					if (m_game.m_bombs[i].m_id != 0) {
 						for (int j = 0; j < MAX_PLAYERS; j++) {
@@ -720,7 +635,6 @@ namespace meteor {
 					}
 				}
 
-				// Add new bombs that weren't assigned
 				for (int j = 0; j < MAX_PLAYERS; j++) {
 					if (!message_bomb_assigned[j] && message.m_shot.m_bombs[j].m_id != 0) {
 						for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -740,19 +654,13 @@ namespace meteor {
 				}
 
 				m_game.m_status = (game::status)message.m_shot.m_status;
-
-				
-				
-
 				break;
 			}
 			default: {
 				break;
 			}
 			}
-
 #endif // _CLIENT
-
 		}
 
 		server         m_server;

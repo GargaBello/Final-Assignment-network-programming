@@ -28,14 +28,12 @@
     <ClCompile Include="src\network.cpp" />
     <ClCompile Include="src\network_layer.cpp" />
     <ClCompile Include="src\protocol.cpp" />
-    <ClCompile Include="src\snapshot.cpp" />
     <ClCompile Include="src\timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\client_controller.hpp" />
     <ClInclude Include="include\connection.hpp" />
     <ClInclude Include="include\entities.hpp" />
-    <ClInclude Include="include\entity_controllers.hpp" />
     <ClInclude Include="include\game.hpp" />
     <ClInclude Include="include\helper_functions.hpp" />
     <ClInclude Include="include\messages.hpp" />
@@ -44,7 +42,6 @@
     <ClInclude Include="include\protocol.hpp" />
     <ClInclude Include="include\render.hpp" />
     <ClInclude Include="include\server.hpp" />
-    <ClInclude Include="include\snapshot.hpp" />
     <ClInclude Include="include\timer.hpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

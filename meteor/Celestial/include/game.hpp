@@ -28,46 +28,7 @@ namespace meteor {
 		NAME_LENGTH_MAX = 16;
 
 	constexpr int
-		MAX_PLAYERS = 4,
-		ACTIONS_BUFFER_LENGTH = 12,
-		STATE_HISTORY_LENGHT = 30;
-
-	static void vec2_to_tile(const Vector2& pos, uint8& x, uint8& y) {
-		uint8 new_x = (uint8)pos.x;
-		uint8 new_y = (uint8)pos.y;
-
-		x = new_x;
-		y = new_y;
-	}
-
-
-	/*static bool valid_tile(const uint8 x, const uint8 y) {
-		if (x >= tilemap::WIDTH
-			|| y >= tilemap::HEIGHT
-			|| (x + y * tilemap::WIDTH) >= tilemap::COUNT) return false;
-		else return true;
-	}
-
-	static uint32 coord_to_index(const uint8 x, const uint8 y) {
-		if (!valid_tile(x, y)) return UINT32_MAX;
-		return (x + y * tilemap::WIDTH);
-	}
-
-	static void index_to_coord(const uint32 index, uint8& x, uint8& y) {
-		if (index >= tilemap::COUNT) return;
-		y = (uint8)index / tilemap::WIDTH;
-		x = (uint8)index % tilemap::WIDTH;
-	}*/
-
-	enum class player_actions : uint8 {
-		INVALID,
-		STAND_STILL,
-		MOVE_RIGHT,
-		MOVE_LEFT,
-		MOVE_UP,
-		MOVE_DOWN,
-		PLACE_BOMB
-	};
+		MAX_PLAYERS = 4;
 
 	struct background {
 
@@ -166,46 +127,6 @@ namespace meteor {
 
 	};
 
-	struct tilemap {
-		static constexpr uint32 TILE_SIZE = 32;
-		static constexpr uint8
-			WIDTH = 16,
-			HEIGHT = 16;
-		static constexpr Vector2 SIZE_V = Vector2(WIDTH, HEIGHT);
-
-		static constexpr int COUNT = WIDTH * HEIGHT;
-		static constexpr int TILEMAP_BYTES =
-			WIDTH * HEIGHT / 8
-			+ (((WIDTH * HEIGHT) % 8) == 0 ? 0 : 1);
-
-
-		tilemap() = default;
-
-		uint8 m_tiles[TILEMAP_BYTES];
-
-		bool is_tile_active(const uint8 x, const uint8 y) const;
-		bool is_tile_active(const uint32 index) const;
-
-		void set_tile(const uint8 x, const uint8 y, bool value);
-
-		
-	};
-
-	struct game_state {
-		game_state() = default;
-
-		player        m_players[MAX_PLAYERS] = {};
-		bomb		  m_bombs[MAX_PLAYERS] = {};
-		terrain_map   m_map = {};
-
-		const player& get_player(const int index) const;
-		const bomb& get_bomb(const int index) const;
-
-		const terrain_map& get_map() const;
-
-		const bool is_default() const;
-	};
-
 
 	struct game {
 		static constexpr int
@@ -289,8 +210,6 @@ namespace meteor {
 				for (int p = 0; p < MAX_PLAYERS; p++) {
 					if (m_players[p].is_player_character == true) {
 
-						//m_players[p].m_prev_position = m_players[p].m_position;
-
 						if (IsKeyPressed(KEY_W)) {
 							m_players[p].m_action = player::action::MOVE_UP;
 							m_players[p].m_predict_action = player::action::MOVE_UP;
@@ -330,8 +249,6 @@ namespace meteor {
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 					player::action action = m_players[i].m_action;
-
-					//m_players[i].m_prev_position = m_players[i].m_position;
 
 					bool player_moved = false;  
 
@@ -416,7 +333,7 @@ namespace meteor {
 									m_bombs[j].m_hit = false;
 									m_bombs[j].m_explosion_tick = m_bombs[j].FUSE_TICKS;
 									m_players[i].m_action = player::action::STAND_STILL;
-									break; // Important: exit after placing one bomb
+									break; 
 								}
 							}
 						}
@@ -433,14 +350,7 @@ namespace meteor {
 					}
 					}
 
-					/*if (player_moved) {
-						m_last_update_time = current_time;
-					}*/
 				}
-				
-
-				
-				//m_time_since_last_update = current_time - m_last_update_time;
 
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
@@ -486,27 +396,6 @@ namespace meteor {
 				if (m_queue.m_snapshots.size() > m_queue.MAX_SNAPSHOTS) {
 					m_queue.m_snapshots.pop_back();
 				}
-
-				
-
-				/*	todo make function that checks the rows a bomb was on when exploding and apply damage to whatever the explosion hit
-				*	make client
-				*   client send receive
-				*	client prediction
-				*   client reconciliation
-				*	client interpolation
-				*
-				*   lobby
-				*	make game start 60 seconds after first 2 clients join
-				*	check if packets can send and shit
-				*
-				*	overhaul snapshots
-				* 
-				*	Diconnect players when they won
-				*	Display disconnect messages on screen for client
-				* 
-				*  Only interpolate the remote players and make the time when the client receives the payload the last update time 
-				*/
 				
 			}
 			else if (m_status == game::status::POST_GAME) {
@@ -635,15 +524,11 @@ namespace meteor {
 				for (int k = 0; k < MAX_PLAYERS; k++) {
 					if ((int)m_players[k].m_terrain_map_pos.x == i && (int)m_players[k].m_terrain_map_pos.y == y) {
 						m_players[k].m_hit = true;
-
 					}
 				}
 
 				if (m_map.tile_active(i, y, m_map)) {
 					m_map.m_terrain_map[i][y].m_hit = true;
-
-
-
 					break;
 				}
 			}
@@ -652,15 +537,11 @@ namespace meteor {
 				for (int k = 0; k < MAX_PLAYERS; k++) {
 					if ((int)m_players[k].m_terrain_map_pos.x == i && (int)m_players[k].m_terrain_map_pos.y == y) {
 						m_players[k].m_hit = true;
-
 					}
 				}
 
 				if (m_map.tile_active(i, y, m_map)) {
 					m_map.m_terrain_map[i][y].m_hit = true;
-
-
-
 					break;
 				}
 			}
@@ -669,15 +550,11 @@ namespace meteor {
 				for (int o = 0; o < MAX_PLAYERS; o++) {
 					if ((int)m_players[o].m_terrain_map_pos.x == x && (int)m_players[o].m_terrain_map_pos.y == j) {
 						m_players[o].m_hit = true;
-
 					}
 				}
 
 				if (m_map.tile_active(x, j, m_map)) {
 					m_map.m_terrain_map[x][j].m_hit = true;
-
-
-
 					break;
 				}
 			}
@@ -686,35 +563,16 @@ namespace meteor {
 				for (int o = 0; o < MAX_PLAYERS; o++) {
 					if ((int)m_players[o].m_terrain_map_pos.x == x && (int)m_players[o].m_terrain_map_pos.y == j) {
 						m_players[o].m_hit = true;
-
 					}
 				}
 
 				if (m_map.tile_active(x, j, m_map)) {
 					m_map.m_terrain_map[x][j].m_hit = true;
-
-
-
 					break;
 				}
 			}
 		}
 
-		Vector2 player_position_interpolation(Vector2 prev_pos, Vector2 pos, double rtt) {
-			uint32 m_tick_when_interpolated = m_tick + (TICK_RATE * 2);
-
-			//if (m_tick_when_interpolated - m_tick <= 0) { return; }
-
-			for (int i = 1; i < (int)m_tick_when_interpolated; i++) {
-				const float fraction = (float)i / (float)(m_tick_when_interpolated);
-
-			}
-
-			Vector2 zero = {};
-
-			return zero;
-
-		}
 
 		bool go_to_post_game() {
 			int dead_player_counter = 0;

@@ -22,50 +22,10 @@ namespace meteor {
 
 	constexpr uint32
 		BOMB_FUSE_TICKS = (uint32)(BOMB_FUSE_TIME * (double)TICK_RATE),
-		BOMB_COOLDOWN_TICKS = (uint32)(1 * (double)TICK_RATE),
-		NAME_LENGTH_MAX = 16;
+		BOMB_COOLDOWN_TICKS = (uint32)(1 * (double)TICK_RATE);
 
 	constexpr int
-		MAX_PLAYERS = 4,
-		ACTIONS_BUFFER_LENGTH = 12,
-		STATE_HISTORY_LENGHT = 30;
-
-	static void vec2_to_tile(const Vector2& pos, uint8& x, uint8& y) {
-		uint8 new_x = (uint8)pos.x;
-		uint8 new_y = (uint8)pos.y;
-
-		x = new_x;
-		y = new_y;
-	}
-
-
-	/*static bool valid_tile(const uint8 x, const uint8 y) {
-		if (x >= tilemap::WIDTH
-			|| y >= tilemap::HEIGHT
-			|| (x + y * tilemap::WIDTH) >= tilemap::COUNT) return false;
-		else return true;
-	}
-
-	static uint32 coord_to_index(const uint8 x, const uint8 y) {
-		if (!valid_tile(x, y)) return UINT32_MAX;
-		return (x + y * tilemap::WIDTH);
-	}
-
-	static void index_to_coord(const uint32 index, uint8& x, uint8& y) {
-		if (index >= tilemap::COUNT) return;
-		y = (uint8)index / tilemap::WIDTH;
-		x = (uint8)index % tilemap::WIDTH;
-	}*/
-
-	enum class player_actions : uint8 {
-		INVALID,
-		STAND_STILL,
-		MOVE_RIGHT,
-		MOVE_LEFT,
-		MOVE_UP,
-		MOVE_DOWN,
-		PLACE_BOMB
-	};
+		MAX_PLAYERS = 4;
 
 	struct background {
 
@@ -164,47 +124,6 @@ namespace meteor {
 
 	};
 
-	struct tilemap {
-		static constexpr uint32 TILE_SIZE = 32;
-		static constexpr uint8
-			WIDTH = 16,
-			HEIGHT = 16;
-		static constexpr Vector2 SIZE_V = Vector2(WIDTH, HEIGHT);
-
-		static constexpr int COUNT = WIDTH * HEIGHT;
-		static constexpr int TILEMAP_BYTES =
-			WIDTH * HEIGHT / 8
-			+ (((WIDTH * HEIGHT) % 8) == 0 ? 0 : 1);
-
-
-		tilemap() = default;
-
-		uint8 m_tiles[TILEMAP_BYTES];
-
-		bool is_tile_active(const uint8 x, const uint8 y) const;
-		bool is_tile_active(const uint32 index) const;
-
-		void set_tile(const uint8 x, const uint8 y, bool value);
-
-		
-	};
-
-	struct game_state {
-		game_state() = default;
-
-		player        m_players[MAX_PLAYERS] = {};
-		bomb		  m_bombs[MAX_PLAYERS] = {};
-		terrain_map   m_map = {};
-
-		const player& get_player(const int index) const;
-		const bomb& get_bomb(const int index) const;
-
-		const terrain_map& get_map() const;
-
-		const bool is_default() const;
-	};
-
-
 	struct game {
 		static constexpr int
 		ACTIONS_BUFFER_LENGTH = 12,
@@ -251,7 +170,6 @@ namespace meteor {
 						m_bombs[i].m_id = m_clients[i].m_connection.m_id;
 						m_players[i].m_hit = false;
 
-						// Reset position to spawn point
 						switch (i) {
 						case 0:
 							m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_ONE_START_INDEX.x][(int)m_map.PLAYER_ONE_START_INDEX.y].m_center_of_pos;
@@ -350,53 +268,41 @@ namespace meteor {
 					{
 					case player::action::MOVE_UP: {
 						if (m_map.tile_active((int)m_players[i].m_terrain_map_pos.x, (int)(m_players[i].m_terrain_map_pos.y - 1), m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x), (int)(m_players[i].m_terrain_map_pos.y - 1))) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.y -= 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_DOWN: {
 						if (m_map.tile_active((int)m_players[i].m_terrain_map_pos.x, (int)(m_players[i].m_terrain_map_pos.y + 1), m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x), (int)(m_players[i].m_terrain_map_pos.y + 1))) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.y += 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_RIGHT: {
 						if (m_map.tile_active((int)(m_players[i].m_terrain_map_pos.x + 1), (int)m_players[i].m_terrain_map_pos.y, m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x + 1), (int)m_players[i].m_terrain_map_pos.y)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.x += 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
 					case player::action::MOVE_LEFT: {
 						if (m_map.tile_active((int)(m_players[i].m_terrain_map_pos.x - 1), (int)m_players[i].m_terrain_map_pos.y, m_map)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else if (bomb_in_way((int)(m_players[i].m_terrain_map_pos.x - 1), (int)m_players[i].m_terrain_map_pos.y)) {
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						else {
 							m_players[i].m_terrain_map_pos.x -= 1;
-							//m_players[i].m_action = player::action::STAND_STILL;
 						}
 						break;
 					}
@@ -483,27 +389,6 @@ namespace meteor {
 				if (m_queue.m_snapshots.size() > m_queue.MAX_SNAPSHOTS) {
 					m_queue.m_snapshots.pop_back();
 				}
-
-
-				/*	todo make function that checks the rows a bomb was on when exploding and apply damage to whatever the explosion hit
-				*	make client
-				*   client send receive
-				*	client prediction
-				*   client reconciliation
-				*	client interpolation
-				*
-				*   lobby
-				*	make game start 60 seconds after first 2 clients join
-				*	check if packets can send and shit
-				*
-				*	overhaul snapshots
-				* 
-				* when client receives it compares it to all the snapshots in its memory and doesn't change anything if the incoming snapshot is the same as a snapshot inside the queue, 
-				i mean if the positions of the entities are the same or if they are hit, it should change the cooldowns and explosion ticks and such every receive probably
-				The interpolation repeats each time for each entity any time a remote entity moves 
-				Make it so that the replicated snapshots are not only calculated with player movements and also with things like terrain death
-				*/
-
 
 				draw();
 			}
