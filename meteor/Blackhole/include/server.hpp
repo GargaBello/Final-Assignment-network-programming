@@ -29,7 +29,6 @@ namespace meteor {
 			receive();
 			perform_timeout_check(m_my_connection);
 			if (!m_listener->timeout_check()) { transmit(); }
-
 		}
 
 		void receive() {
@@ -112,7 +111,7 @@ namespace meteor {
 
 
 #ifdef _CLIENT
-			m_local_endpoint = { m_local_address, 54323 };
+			m_local_endpoint = { m_local_address, 54324 };
 #endif // _CLIENT
 
 
@@ -240,7 +239,7 @@ namespace meteor {
 
 			disconnect_packet packet;
 			if (!packet.read(reader)) {
-				debug::info("Unable to read disconnect packet");
+				debug::error("Unable to read disconnect packet");
 				return;
 			}
 
@@ -272,7 +271,7 @@ namespace meteor {
 		void handle_payload_packet(const ip_endpoint& endpoint, byte_stream_reader& reader) {
 			payload_packet packet;
 			if (!packet.read(reader)) {
-				debug::info("Unable to read payload packet");
+				debug::error("Unable to read payload packet");
 				return;
 			}
 
@@ -363,6 +362,7 @@ namespace meteor {
 #ifdef _CLIENT
 			conn.m_last_send_time = GetTime();
 #endif // _CLIENT
+
 
 			debug::info("Sent Payload");
 
@@ -628,6 +628,7 @@ namespace meteor {
 								}
 							}
 						}
+						
 						return true;
 					});
 
@@ -703,14 +704,6 @@ namespace meteor {
 						m_game.m_players[i].is_player_character = true;
 					}
 				}
-
-				/*for (int i = 0; i < MAX_PLAYERS; i++) {
-					for (int j = 0; j < MAX_PLAYERS; j++) {
-						if (m_game.m_bombs[i].m_id == message.m_shot.m_bombs[j].m_id == !(m_game.m_bombs[i].m_id == 0)) {
-							m_game.m_bombs[i] = message.m_shot.m_bombs[j];
-						}
-					}
-				}*/
 
 				std::vector<bool> message_bomb_assigned(MAX_PLAYERS, false);
 

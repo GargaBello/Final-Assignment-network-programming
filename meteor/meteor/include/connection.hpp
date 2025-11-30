@@ -24,6 +24,7 @@ namespace meteor {
 		ip_endpoint m_endpoint;
 		status		m_status = {};
 		double		m_last_receive_time = 0;
+		double      m_last_send_time = 0;
 		uint32		m_sequence = 0;
 		uint32		m_acknowledge = 0;
 	};

@@ -40,6 +40,25 @@ namespace meteor {
 		y = new_y;
 	}
 
+
+	/*static bool valid_tile(const uint8 x, const uint8 y) {
+		if (x >= tilemap::WIDTH
+			|| y >= tilemap::HEIGHT
+			|| (x + y * tilemap::WIDTH) >= tilemap::COUNT) return false;
+		else return true;
+	}
+
+	static uint32 coord_to_index(const uint8 x, const uint8 y) {
+		if (!valid_tile(x, y)) return UINT32_MAX;
+		return (x + y * tilemap::WIDTH);
+	}
+
+	static void index_to_coord(const uint32 index, uint8& x, uint8& y) {
+		if (index >= tilemap::COUNT) return;
+		y = (uint8)index / tilemap::WIDTH;
+		x = (uint8)index % tilemap::WIDTH;
+	}*/
+
 	enum class player_actions : uint8 {
 		INVALID,
 		STAND_STILL,
@@ -215,24 +234,6 @@ namespace meteor {
 				m_players[i] = default_player;
 				m_players[i].m_hit = true;
 				m_bombs[i] = default_bomb;
-
-				/*switch (i)
-				{
-				case 0:
-					m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_ONE_START_INDEX.x][(int)m_map.PLAYER_ONE_START_INDEX.y].m_center_of_pos;
-					break;
-				case 1:
-					m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_TWO_START_INDEX.x][(int)m_map.PLAYER_TWO_START_INDEX.y].m_center_of_pos;
-					break;
-				case 2:
-					m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_THREE_START_INDEX.x][(int)m_map.PLAYER_THREE_START_INDEX.y].m_center_of_pos;
-					break;
-				case 3:
-					m_players[i].m_position = m_map.m_terrain_map[(int)m_map.PLAYER_FOUR_START_INDEX.x][(int)m_map.PLAYER_FOUR_START_INDEX.y].m_center_of_pos;
-					break;
-				default:
-					break;
-				}*/
 			}
 
 			m_status = game::status::PRE_GAME;
@@ -552,17 +553,18 @@ namespace meteor {
 						m_players[i].m_prev_position = m_players[i].m_position;
 					}
 
-					
+
 					Vector2 render_pos = Vector2Lerp(
-						m_players[i].m_prev_position,  
-						m_players[i].m_position,        
-						(float)lerp_fraction            
+						m_players[i].m_prev_position,
+						m_players[i].m_position,
+						(float)lerp_fraction
 					);
 
 					if (lerp_fraction >= 1.0f && !m_players[i].is_player_character) {
 						m_players[i].m_prev_position = m_players[i].m_position;
 					}
-					
+
+
 					DrawRectangle(
 						(int)render_pos.x,
 						(int)render_pos.y,

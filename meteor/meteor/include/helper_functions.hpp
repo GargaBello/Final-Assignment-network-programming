@@ -21,7 +21,8 @@ namespace meteor {
 
     static bool timer_check(double& prev_time) {
         double current_time = GetTime();
-        float timer = 2.0f;
+        //float timer = 2.0f;
+        float timer = 0.2f;
 
         if ((current_time - prev_time) >= timer) {
             prev_time = current_time;

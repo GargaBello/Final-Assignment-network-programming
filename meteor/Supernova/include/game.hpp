@@ -311,6 +311,9 @@ namespace meteor {
 							m_players[p].m_action = player::action::PLACE_BOMB;
 							m_players[p].m_predict_action = player::action::PLACE_BOMB;
 						}
+						else if (IsKeyPressed(KEY_M)) {
+							m_timeout_check = true;
+						}
 					}
 				}
 				#endif // _CLIENT
@@ -406,11 +409,14 @@ namespace meteor {
 					case player::action::PLACE_BOMB: {
 						if (can_place_bomb(m_players[i])) {
 							for (int j = 0; j < MAX_PLAYERS; j++) {
-								if (m_players[i].m_id == m_bombs[j].m_id) {
+								if (m_bombs[j].m_hit || m_bombs[j].m_id == 0) {
+									m_bombs[j].m_id = m_players[i].m_id;
 									m_bombs[j].m_position = m_players[i].m_position;
 									m_bombs[j].m_terrain_map_pos = m_players[i].m_terrain_map_pos;
 									m_bombs[j].m_hit = false;
+									m_bombs[j].m_explosion_tick = m_bombs[j].FUSE_TICKS;
 									m_players[i].m_action = player::action::STAND_STILL;
+									break; // Important: exit after placing one bomb
 								}
 							}
 						}
@@ -528,7 +534,7 @@ namespace meteor {
 			m_background.draw();
 
 			for (int i = 0; i < MAX_PLAYERS; i++) {
-				if (m_bombs[i].m_explosion_tick > 0 && m_bombs[i].m_hit == false) {
+				if (m_bombs[i].m_hit == false && m_bombs[i].m_id != 0) {
 					DrawRectangle((int)m_bombs[i].m_position.x, (int)m_bombs[i].m_position.y, (int)m_bombs[i].RECTANGLE_SIDE_LENGTH, (int)m_bombs[i].RECTANGLE_SIDE_LENGTH, BLACK);
 				}
 			}
@@ -554,6 +560,9 @@ namespace meteor {
 						(float)lerp_fraction
 					);
 
+					if (lerp_fraction >= 1.0f && !m_players[i].is_player_character) {
+						m_players[i].m_prev_position = m_players[i].m_position;
+					}
 
 					DrawRectangle(
 						(int)render_pos.x,
@@ -573,36 +582,39 @@ namespace meteor {
 				}
 			}
 
-			std::string text = "Round trip time: " + std::to_string(m_rtt_time);
+			std::string text = "RTT: " + sec_to_ms_str_pretty(m_rtt_time);
 			DrawText(text.c_str(), m_background.BACKGROUND_WIDTH - 200, m_background.BACKGROUND_HEIGHT - 575, 30, BLACK);
 
 			if (m_disconnected) {
-				int half_of_window_width = 600,
+				int good_spot_for_text = 300,
 					half_of_window_height = 350;
 
-				DrawText(m_disconnect_text.c_str(), half_of_window_width, half_of_window_height, 50, BLACK);
+				DrawText(m_disconnect_text.c_str(), good_spot_for_text, half_of_window_height, 50, BLACK);
 			}
 
 		}
 
+		static std::string sec_to_ms_str_pretty(const double sec) {
+			std::string r = "";
+			r += std::to_string(sec * 1000);
+			if (r.find('.') + 2 < r.size()) {
+				r.erase(r.begin() + r.find('.') + 2, r.end());
+			}
+			r += "ms";
+			return r;
+		}
+
 		bool can_place_bomb(player player) {
-			bool r = true;
+			if (player.m_hit) return false;
 
-			r &= !player.m_hit;
-
+			
 			for (int i = 0; i < MAX_PLAYERS; i++) {
-				if (player.m_id == m_bombs[i].m_id) {
-					if (!m_bombs[i].m_hit) {
-						m_bombs[i].m_position = player.m_position;
-						m_bombs[i].m_hit = false;
-						m_bombs[i].m_explosion_tick = m_bombs[i].FUSE_TICKS;
-					}
+				if (m_bombs[i].m_id == player.m_id && !m_bombs[i].m_hit) {
+					return false; 
 				}
 			}
 
-			
-
-			return r;
+			return true;
 		}
 
 		bool bomb_in_way(int x, int y) const {
@@ -745,5 +757,6 @@ namespace meteor {
 
 		std::string                       m_disconnect_text = "";
 		bool                              m_disconnected = false;
+		bool                              m_timeout_check = false;
 	};
 }

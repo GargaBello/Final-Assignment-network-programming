@@ -403,10 +403,14 @@ namespace meteor {
 					case player::action::PLACE_BOMB: {
 						if (can_place_bomb(m_players[i])) {
 							for (int j = 0; j < MAX_PLAYERS; j++) {
-								if (m_players[i].m_id == m_bombs[j].m_id) {
+								if (m_bombs[j].m_hit || m_bombs[j].m_id == 0) {
+									m_bombs[j].m_id = m_players[i].m_id;
 									m_bombs[j].m_position = m_players[i].m_position;
 									m_bombs[j].m_terrain_map_pos = m_players[i].m_terrain_map_pos;
 									m_bombs[j].m_hit = false;
+									m_bombs[j].m_explosion_tick = m_bombs[j].FUSE_TICKS;
+									m_players[i].m_action = player::action::STAND_STILL;
+									break; 
 								}
 							}
 						}
@@ -425,12 +429,16 @@ namespace meteor {
 				}
 
 
-
+				int dead_player_counter = 0;
 
 				for (int i = 0; i < MAX_PLAYERS; i++) {
 
 					
 					m_players[i].m_position = m_map.m_terrain_map[(int)m_players[i].m_terrain_map_pos.x][(int)m_players[i].m_terrain_map_pos.y].m_center_of_pos;
+					if (m_players[i].m_hit) {
+						dead_player_counter++;
+					}
+
 
 					if ((int)m_bombs[i].m_explosion_tick <= 0) {
 						//bomb will explode
@@ -441,6 +449,10 @@ namespace meteor {
 						}
 						m_bombs[i].m_explosion_tick = m_bombs[i].FUSE_TICKS;
 					}
+				}
+
+				if (dead_player_counter >= 3) {
+					m_status = status::POST_GAME;
 				}
 
 
@@ -488,8 +500,24 @@ namespace meteor {
 				* 
 				* when client receives it compares it to all the snapshots in its memory and doesn't change anything if the incoming snapshot is the same as a snapshot inside the queue, 
 				i mean if the positions of the entities are the same or if they are hit, it should change the cooldowns and explosion ticks and such every receive probably
+				The interpolation repeats each time for each entity any time a remote entity moves 
+				Make it so that the replicated snapshots are not only calculated with player movements and also with things like terrain death
 				*/
 
+
+				draw();
+			}
+			else if (m_status == status::POST_GAME) {
+				for (int i = 0; i < MAX_PLAYERS; i++) {
+					m_players[i].m_hit = true;
+					m_bombs[i].m_hit = true;
+				}
+
+				for (int i = 0; i < m_map.ARRAY_WIDTH; i++) {
+					for (int j = 0; j < m_map.ARRAY_HEIGHT; j++) {
+						m_map.m_terrain_map[i][j].m_hit = true;
+					}
+				}
 
 				draw();
 			}
@@ -499,7 +527,7 @@ namespace meteor {
 			m_background.draw();
 
 			for (int i = 0; i < MAX_PLAYERS; i++) {
-				if (m_bombs[i].m_explosion_tick > 0 && m_bombs[i].m_hit == false) {
+				if (m_bombs[i].m_hit == false) {
 					DrawRectangle((int)m_bombs[i].m_position.x, (int)m_bombs[i].m_position.y, (int)m_bombs[i].RECTANGLE_SIDE_LENGTH, (int)m_bombs[i].RECTANGLE_SIDE_LENGTH, BLACK);
 				}
 			}
@@ -521,23 +549,16 @@ namespace meteor {
 		}
 
 		bool can_place_bomb(player player) {
-			bool r = true;
+			if (player.m_hit) return false;
 
-			r &= !player.m_hit;
-
+			
 			for (int i = 0; i < MAX_PLAYERS; i++) {
-				if (player.m_id == m_bombs[i].m_id) {
-					if (!m_bombs[i].m_hit) {
-						m_bombs[i].m_position = player.m_position;
-						m_bombs[i].m_hit = false;
-						m_bombs[i].m_explosion_tick = m_bombs[i].FUSE_TICKS;
-					}
+				if (m_bombs[i].m_id == player.m_id && !m_bombs[i].m_hit) {
+					return false; 
 				}
 			}
 
-			
-
-			return r;
+			return true;
 		}
 
 		bool bomb_in_way(int x, int y) const {

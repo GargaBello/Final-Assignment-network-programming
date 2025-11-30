@@ -20,7 +20,8 @@ namespace meteor
        TIMED_OUT,
        WRONG_VERSION,
        WRONG_MAGIC,
-       DISCONNECTING
+       DISCONNECTING,
+       GAME_OVER
    };
 
    struct connect_packet {

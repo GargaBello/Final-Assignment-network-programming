@@ -17,6 +17,7 @@ namespace meteor {
 			virtual void on_disconnect(uint32 id, bool timeout) = 0;
 			virtual void on_send(uint32 id, byte_stream_writer& writer) = 0;
 			virtual void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) = 0;
+			virtual void on_game_over() = 0;
 		};
 
 		server(listener* listener)
@@ -26,6 +27,11 @@ namespace meteor {
 
 		void update() {
 			receive();
+			for (int i = 0; i < MAX_CLIENTS; i++) { 
+				perform_timeout_check(m_clients[i].m_connection); 
+				remove_disconnected_connections(m_clients[i].m_connection);
+			}
+			
 			transmit();
 		}
 
@@ -36,6 +42,10 @@ namespace meteor {
 				ip_endpoint endpoint;
 				if (!m_socket.receive_from(endpoint, stream)) {
 					debug::info("Unable to receive stream");
+					break;
+				}
+
+				if (m_game_over) {
 					break;
 				}
 
@@ -69,6 +79,8 @@ namespace meteor {
 
 				m_server_sequence++;
 
+				m_listener->on_game_over();
+
 				for (int i = 0; i < MAX_CLIENTS; i++) {
 					if (m_clients[i].m_connection.m_status == connection::status::CONNECTED) {
 						m_clients[i].m_connection.m_sequence = m_server_sequence;
@@ -101,6 +113,9 @@ namespace meteor {
 
 #ifdef _SERVER
 			m_local_endpoint = { m_local_address, 54321 };
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				m_clients[i].m_connection.m_last_receive_time = GetTime();
+			}
 #endif // _SERVER
 
 
@@ -144,6 +159,7 @@ namespace meteor {
 				conn.m_status = connection::status::DISCONNECTED;
 				send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out"); 
 				m_listener->on_disconnect(conn.m_id, true);
+				
 			}
 		}
 
@@ -233,7 +249,7 @@ namespace meteor {
 			debug::info("Received disconnect");
 
 			#ifdef _SERVER
-			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "You are disconnecting");
+			//send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "You are disconnecting");
 
 			for (int i = 0; i < MAX_CLIENTS; i++) {
 				if (m_clients[i].m_connection.m_endpoint == endpoint) {
@@ -346,6 +362,10 @@ namespace meteor {
 				);
 			}
 
+#ifdef _CLIENT
+			conn.m_last_send_time = GetTime();
+#endif // _CLIENT
+
 			debug::info("Sent Payload");
 
 			return true;
@@ -355,6 +375,7 @@ namespace meteor {
 			const disconnect_reason_type reason,
 			std::string_view message) {
 			disconnect_packet packet;
+			packet.m_type = (uint8)protocol_packet_type::DISCONNECT;
 			for (client& client : m_clients) {
 				if (endpoint == client.m_connection.m_endpoint) {
 					packet.m_sequence = client.m_connection.m_sequence;
@@ -366,12 +387,12 @@ namespace meteor {
 			byte_stream_writer writer(stream);
 
 			if (!packet.write(writer)) {
-				debug::error("Failed to write disconnect packet");
+				debug::info("Failed to write disconnect packet");
 				return false;
 			}
 
 			if (!m_socket.send_to(endpoint, stream)) {
-				debug::error("Failed to send disconnect packet");
+				debug::info("Failed to send disconnect packet");
 				return false;
 			}
 
@@ -390,6 +411,7 @@ namespace meteor {
 		ip_endpoint             m_local_endpoint;
 		ip_address              m_local_address;
 		std::vector<ip_address> m_local_addresses;
+		bool                    m_game_over = false;
 
 #ifdef _CLIENT
 
@@ -415,11 +437,24 @@ namespace meteor {
 		void update() {
 			m_server.receive();
 			m_game.update();
+			for (int i = 0; i < MAX_CLIENTS; i++) {
+				m_server.perform_timeout_check(m_clients[i].m_connection);
+			}
 			m_server.transmit();
 		}
 
 		void close() {
 			m_server.shut();
+		}
+
+		void on_game_over() {
+			if (m_game.m_status == game::status::POST_GAME) {
+				for (int i = 0; i < MAX_CLIENTS; i++) {
+					m_server.send_disconnect(m_clients[i].m_connection.m_endpoint, disconnect_reason_type::GAME_OVER, "Game over");
+				}
+
+				m_server.m_game_over = true;
+			}
 		}
 
 		void on_connect(uint32 id) {
@@ -436,6 +471,17 @@ namespace meteor {
 		}
 
 		void on_disconnect(uint32 id, bool timeout) {
+#ifdef _SERVER
+			for (int i = 0; i < MAX_PLAYERS; i++) {
+				if (m_game.m_players[i].m_id == id) {
+					m_game.m_players[i].m_hit = true;
+				}
+
+				if (m_clients[i].m_connection.m_id == id) {
+					m_server.remove_disconnected_connections(m_clients[i].m_connection);
+				}
+			}
+#endif // _SERVER
 
 		}
 

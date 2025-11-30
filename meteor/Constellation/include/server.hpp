@@ -17,6 +17,7 @@ namespace meteor {
 			virtual void on_disconnect(uint32 id, bool timeout, disconnect_reason_type reason) = 0;
 			virtual void on_send(uint32 id, byte_stream_writer& writer) = 0;
 			virtual void on_receive(uint32 id, uint32 sequence, byte_stream_reader& reader) = 0;
+			virtual bool timeout_check() = 0;
 		};
 
 		server(listener* listener)
@@ -26,7 +27,8 @@ namespace meteor {
 
 		void update() {
 			receive();
-			transmit();
+			perform_timeout_check(m_my_connection);
+			if (!m_listener->timeout_check()) { transmit(); }
 		}
 
 		void receive() {
@@ -125,6 +127,7 @@ namespace meteor {
 
 			m_my_connection.m_endpoint = SERVER_ENDPOINT;
 			m_my_connection.m_id = 0;
+			m_my_connection.m_last_receive_time = GetTime();
 
 #endif // _CLIENT
 
@@ -144,7 +147,12 @@ namespace meteor {
 
 			if ((current_time - conn.m_last_receive_time) >= timer) {
 				conn.m_status = connection::status::DISCONNECTED;
-				send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out");
+				if (conn.m_endpoint == m_my_connection.m_endpoint) {
+					send_disconnect(SERVER_ENDPOINT, disconnect_reason_type::TIMED_OUT, "You have timed out");
+				}
+				else {
+					send_disconnect(conn.m_endpoint, disconnect_reason_type::TIMED_OUT, "You have timed out");
+				}
 				m_listener->on_disconnect(conn.m_id, true, disconnect_reason_type::TIMED_OUT);
 			}
 		}
@@ -172,7 +180,7 @@ namespace meteor {
 
 			connect_packet packet;
 			if (!packet.read(reader)) {
-				debug::error("Unable to read connect packet");
+				debug::info("Unable to read connect packet");
 				return;
 			}
 
@@ -250,9 +258,9 @@ namespace meteor {
 
 #ifdef _CLIENT
 
-			send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "I am disconnecting");
+			//send_disconnect(endpoint, disconnect_reason_type::DISCONNECTING, "I am disconnecting");
 
-			m_listener->on_disconnect(m_my_connection.m_id, false, disconnect_reason_type::DISCONNECTING);
+			m_listener->on_disconnect(m_my_connection.m_id, false, (disconnect_reason_type)packet.m_reason);
 
 #endif // _CLIENT
 
@@ -349,6 +357,10 @@ namespace meteor {
 				);
 			}
 
+#ifdef _CLIENT
+			conn.m_last_send_time = GetTime();
+#endif // _CLIENT
+
 			debug::info("Sent Payload");
 
 			return true;
@@ -358,6 +370,7 @@ namespace meteor {
 			const disconnect_reason_type reason,
 			std::string_view message) {
 			disconnect_packet packet;
+			packet.m_type = (uint8)protocol_packet_type::DISCONNECT;
 			for (client& client : m_clients) {
 				if (endpoint == client.m_connection.m_endpoint) {
 					packet.m_sequence = client.m_connection.m_sequence;
@@ -418,11 +431,18 @@ namespace meteor {
 		void update() {
 			m_server.receive();
 			m_game.update();
-			m_server.transmit();
+			m_server.perform_timeout_check(m_server.m_my_connection);
+			if (!timeout_check()) { m_server.transmit(); }
 		}
 
 		void close() {
 			m_server.shut();
+		}
+
+		bool timeout_check() {
+			if (m_game.m_timeout_check) { return true; }
+
+			return false;
 		}
 
 		void on_connect(uint32 id) {
@@ -432,6 +452,7 @@ namespace meteor {
 			for (int i = 0; i < MAX_PLAYERS; i++) {
 				if (m_game.m_players[i].m_id == id) {
 					m_game.m_players[i].is_player_character = true;
+					m_game.m_bombs[i].m_id = id;
 				}
 			}
 
@@ -462,7 +483,10 @@ namespace meteor {
 				m_game.m_disconnect_text = "You have the wrong version and need the right one to connect";
 				m_game.m_disconnected = true;
 				break;
-
+			case disconnect_reason_type::GAME_OVER:
+				m_game.m_disconnect_text = "The game is over, Close the game";
+				m_game.m_disconnected = true;
+				break;
 			default:
 				break;
 			}
@@ -579,7 +603,7 @@ namespace meteor {
 
 				//Wrong calculation i need to calculate the minus from the last receive time and get time when i get packages
 				//double rtt = m_server.m_my_connection.m_last_receive_time - m_game.m_rtt_time;
-				double rtt = GetTime() - m_server.m_my_connection.m_last_receive_time;
+				double rtt = GetTime() - m_server.m_my_connection.m_last_send_time;
 				m_game.m_rtt_time = rtt;
 
 				auto it = std::find_if(m_game.m_queue.m_snapshots.begin(),
@@ -589,6 +613,17 @@ namespace meteor {
 							if (snap.m_players[i].m_position.x != message.m_shot.m_players[i].m_position.x ||
 								snap.m_players[i].m_position.y != message.m_shot.m_players[i].m_position.y) {
 								return false;
+							}
+						}
+
+
+						int array_sides = 6;
+
+						for (int x = 0; x < array_sides; x++) {
+							for (int y = 0; y < array_sides; y++) {
+								if (snap.m_terrain_hits[x][y] != message.m_shot.m_terrain_hits[x][y]) {
+									return false;
+								}
 							}
 						}
 						return true;
@@ -673,10 +708,30 @@ namespace meteor {
 					}
 				}
 
+				std::vector<bool> message_bomb_assigned(MAX_PLAYERS, false);
+
+				// Update existing bombs
 				for (int i = 0; i < MAX_PLAYERS; i++) {
-					for (int j = 0; j < MAX_PLAYERS; j++) {
-						if (m_game.m_bombs[i].m_id == message.m_shot.m_bombs[j].m_id == !(m_game.m_bombs[i].m_id == 0)) {
-							m_game.m_bombs[i] = message.m_shot.m_bombs[j];
+					if (m_game.m_bombs[i].m_id != 0) {
+						for (int j = 0; j < MAX_PLAYERS; j++) {
+							if (message.m_shot.m_bombs[j].m_id == m_game.m_bombs[i].m_id) {
+								m_game.m_bombs[i] = message.m_shot.m_bombs[j];
+								message_bomb_assigned[j] = true;
+								break;
+							}
+						}
+					}
+				}
+
+				// Add new bombs that weren't assigned
+				for (int j = 0; j < MAX_PLAYERS; j++) {
+					if (!message_bomb_assigned[j] && message.m_shot.m_bombs[j].m_id != 0) {
+						for (int i = 0; i < MAX_PLAYERS; i++) {
+							if (m_game.m_bombs[i].m_id == 0 || m_game.m_bombs[i].m_hit == true) {
+								m_game.m_bombs[i] = message.m_shot.m_bombs[j];
+								message_bomb_assigned[j] = true;
+								break;
+							}
 						}
 					}
 				}
