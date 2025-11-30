@@ -588,7 +588,7 @@ namespace meteor {
 		}
 
 		void reconciliation(player& Clientplayer, player& Serverplayer) {
-			int distance_threshold = 2;
+			int distance_threshold = 1;
 
 			Vector2 sum = Clientplayer.m_terrain_map_pos - Serverplayer.m_terrain_map_pos;
 
